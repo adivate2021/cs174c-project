@@ -28,8 +28,6 @@ import {Text_Demo}
 import {Transforms_Sandbox_Base, Transforms_Sandbox}
     from "./examples/transforms-sandbox.js";
 
-import {Part_one_hermite} from "./part_one_hermite.js";
-import {Part_two_spring} from "./part_two_spring.js";
 import {Part_three_chain} from "./part_three_chain.js";
 
 Object.assign (defs,
@@ -43,17 +41,15 @@ Object.assign (defs,
     {Scene_To_Texture_Demo},
     {Text_Demo},
     {Transforms_Sandbox_Base, Transforms_Sandbox},
-    {Part_one_hermite},
-    {Part_two_spring},
     {Part_three_chain}
 );
 
 // ******************** SELECT THE DEMO TO DISPLAY:
 
-let scenes = {1: Part_one_hermite, 2: Part_two_spring, 3: Part_three_chain};
+let scenes = {1: Part_three_chain};
 const scene_selector = (i) => scenes[i];
 
-const main_scene        = Part_one_hermite; // default
+const main_scene        = Part_three_chain; // default
 const additional_scenes = [];
 
 export {main_scene, scene_selector, additional_scenes, defs};

@@ -151,6 +151,9 @@ class Simulation {
       model_transform.pre_multiply(Mat4.translation(center[0], center[1], center[2]));
       shapes.box.draw(webgl_manager, uniforms, model_transform, { ...materials.plastic, color: red });
     }
+    // let pincher_transform = Mat4.scale(0.1,0.2,0.1)
+    // pincher_transform.pre_multiply(Mat4.translation(this.particles[this.particles.length-1].pos[0]+0.1,this.particles[this.particles.length-1].pos[1]-0.35,this.particles[this.particles.length-1].pos[2]))
+    // shapes.ball.draw(webgl_manager, uniforms, pincher_transform, {...materials.plastic, color: blue})
   }
 }
 
@@ -289,6 +292,9 @@ export class Part_two_spring extends Part_two_spring_base
         .times(Mat4.scale(this.ball_radius, this.ball_radius, this.ball_radius));
     this.shapes.ball.draw( caller, this.uniforms, ball_transform, { ...this.materials.metal, color: blue } );
     
+    let box_transform = Mat4.translation(5,0,0).times(Mat4.scale(1,1,1))
+    this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
+
     if (this.start_var) {
       // let dt = this.dt = Math.min(1/60, this.uniforms.animation_delta_time / 1000);
       let dt = this.dt = 1/60;
