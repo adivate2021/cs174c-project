@@ -1,84 +1,39 @@
 import {tiny, defs} from './examples/common.js';
 
+import {Part_one_hermite_base, Part_one_hermite} from './part_one_hermite.js';
+import {Particle, Spring, Simulation, Part_two_spring_base, Part_two_spring} from './part_two_spring.js';
+
 // Pull these names into this module's scope for convenience:
 const { vec3, vec4, color, Mat4, Shape, Material, Shader, Texture, Component } = tiny;
 
-// TODO: you should implement the required classes here or in another file.
-
-class Spline {
-  constructor(){
-    this.points = []
-    this.tangents = []
-    this.size = 0
-    this.arc_length_table = []
-  }
-
-  addPoint(x,y,z, tx, ty, tz){
-    this.points.push(vec3(x,y,z))
-    this.tangents.push(vec3(tx, ty, tz))
-    this.size += 1
-    this.makeArcLengthTable()
-  }
-
-  setPoint(index, x,y,z){
-    this.points[index] = vec3(x,y,z)
-    this.makeArcLengthTable()
-  }
-
-  setTangent(index, x,y,z){
-    this.tangents[index] = vec3(x,y,z)
-    this.makeArcLengthTable()
-  }
-
-  get_position(t){
-    if(this.size<2){return vec3(0,0,0)}
-
-    const A = Math.floor(t * (this.size - 1));
-    const B = Math.ceil(t*(this.size-1));
-    const s = (t*(this.size-1))%1.0
-
-    let a = this.points[A].copy()
-    let b = this.points[B].copy()
-    let sa = this.tangents[A].copy()
-    let sb = this.tangents[B].copy()
-
-    let h00 = 2*s**3 - 3*s**2 + 1;
-    let h10 = s**3 - 2*s**2 + s;
-    let h01 = -2*s**3 + 3*s**2;
-    let h11 = s**3 - s**2;
-    
-    let point =vec3(
-      a[0]*h00 + sa[0]*h10/(this.size-1) + b[0]*h01 + sb[0] * h11/(this.size-1),
-      a[1]*h00 + sa[1]*h10/(this.size-1) + b[1]*h01 + sb[1] * h11/(this.size-1),
-      a[2]*h00 + sa[2]*h10/(this.size-1) + b[2]*h01 + sb[2] * h11/(this.size-1),
-    )
-    return point
-  }
-
-  makeArcLengthTable(){
-    this.arc_length_table = []
-    let lastPoint = null
-    for(let i = 0; i< 1001;i++){
-      let t = i/1000
-      let point = this.get_position(t)
-      if(!lastPoint){
-        lastPoint = point
-        this.arc_length_table.push([0,0,0])
-      }
-      else{
-          let pointLength = ((point[0] - lastPoint[0])**2 + (point[1] - lastPoint[1])**2 + (point[2] - lastPoint[2])**2)**(1/2)
-          this.arc_length_table.push([i, t, pointLength + this.arc_length_table[i-1][2]])
-          lastPoint = point
-      }
+class Chain_Sim {
+  constructor() {
+    this.chainSim = new Simulation();
+    for (let i = 0; i < 8; i++) {
+      this.chainSim.particles.push(new Particle());
+      this.chainSim.particles[i].mass = 1;
+      this.chainSim.particles[i].pos = vec3(0, 5 - (0.5 * i), 0);
+      this.chainSim.particles[i].vel = vec3(0, 0, 0);
+      this.chainSim.particles[i].valid = true;
     }
-  }
-
-  getArcLength(){
-    return this.arc_length_table[this.arc_length_table.length-1][2]
+    for (let i = 0; i < 7; i++) {
+      this.chainSim.springs.push(new Spring());
+      this.chainSim.springs[i].particle_1 = this.chainSim.particles[i];
+      this.chainSim.springs[i].particle_2 = this.chainSim.particles[i+1];
+      this.chainSim.springs[i].ks = 50;
+      this.chainSim.springs[i].kd = 0.1;
+      this.chainSim.springs[i].rest_length = 0.5;
+      this.chainSim.springs[i].valid = true;
+    }
+    this.chainSim.g_acc = vec3(0, -9.8, 0);
+    this.chainSim.ground_ks = 5000;
+    this.chainSim.ground_kd = 10;
+    this.chainSim.particles[0].ext_force = vec3(0, 0, 0);
+    this.chainSim.particles[0].acc = vec3(0, 0, 0);
+    this.chainSim.particles[0].vel = vec3(0, 0, 0);
+    
   }
 }
-
-
 class Curve_Shape extends Shape {
   // curve_function: (t) => vec3
   constructor(curve_function, sample_count, curve_color=color( 1, 0, 0, 1 )) {
@@ -103,8 +58,12 @@ class Curve_Shape extends Shape {
 
   update(webgl_manager, uniforms, curve_function) {
     if (curve_function && this.sample_count) {
-      for (let i = 0; i < this.sample_count + 1; i++) {
-        let t = 1.0 * i / this.sample_count;
+      // for (let i = 0; i < this.sample_count + 1; i++) {
+      //   let t = 1.0 * i / this.sample_count;
+      //   this.arrays.position[i] = curve_function(t);
+      let step_size = 1 / this.sample_count;
+      for (let t = 0; t < 1; t+=step_size) {
+        let i = t * this.sample_count;
         this.arrays.position[i] = curve_function(t);
       }
     }
@@ -115,210 +74,9 @@ class Curve_Shape extends Shape {
   }
 };
 
-class Simulation{
-  constructor(){
-    this.particles = []
-    this.springs = []
-    this.ground_ks = 0
-    this.ground_kd = 0
-    this.run = false
-    this.hermite_spline = new Spline()
-    this.hermite_spline.addPoint(0,10,0,-20,0,20)
-    this.hermite_spline.addPoint(0,10,5,20,0,20)
-    this.hermite_spline.addPoint(5,10,5,20,0,-20)
-    this.hermite_spline.addPoint(5,10,0,-20,0,-20)
-    this.hermite_spline.addPoint(0,10,0,-20,0,20)
-    this.time_step = 1/1000
-    this.integration = "symplectic"
-  }
 
-  display(t, dt, caller){
-    dt = Math.min(1/60, dt)
-    let t_sim = t
-    let t_next = t_sim + dt
-    for(;t_sim <= t_next; t_sim += this.time_step){
-      this.update(t, this.time_step, caller)
-    }
-  }
-
-  update(t,dt, caller){
-    // dt = 1/1000
-    let point = this.hermite_spline.get_position(Math.abs(Math.sin(t/2)))
-    let nextPoint = this.hermite_spline.get_position(Math.abs(Math.sin((t+dt)/2)))
-    this.particles[0].ball_location = point
-    let delta = nextPoint.minus(point).normalized()
-    if(delta[0] !== delta[0]){
-      delta[0] = 0
-    }
-    if(delta[1] !== delta[1]){
-      delta[1] = 0
-    }
-    if(delta[2] !== delta[2]){
-      delta[2] = 0
-    }
-    this.particles[0].ball_velocity = delta.times(this.hermite_spline.getArcLength()/2 * Math.abs(Math.cos(t/2)))
-    for (let s of this.springs) {
-      s.update(caller)
-    }
-    for (let p of this.particles) {
-      if(this.integration != "verlet"){
-        p.ball_accel = p.apply_forces()
-      }
-      else{
-        p.newAccel = p.apply_forces()
-      }
-    }
-    for (let i = 1; i < this.particles.length; i++) {
-      this.particles[i].update(dt)
-    }
-  }  
-
-  createParticles(num){
-    for(let i =0;i< num;i++){
-      this.particles.push(null)
-    }
-  }
-
-  setParticle(index, x,y,z,mass, vx,vy,vz){
-    this.particles[index] = new Particle(x,y,z,mass, vx,vy,vz)
-  }
-
-  setSpring(index,p1, p2, ks, kd, rest_length, ){
-    this.springs[index] = new Spring(this.particles[p1], this.particles[p2], ks, kd, rest_length )
-  }
-
-  createSprings(num){
-    for(let i =0; i< num;i++){
-      this.springs.push(null)
-    }
-  }
-
-  setKSKD(ks, kd){
-    for(let p of this.particles){
-      p.ks_ground = ks
-      p.kd_ground = kd
-    }
-  }
-
-  setGravity(gravity){
-    for(let p of this.particles){
-      p.gravity = gravity
-    }
-  }
-
-  setVelocities(vx, vy, vz){
-    for(let p of this.particles){
-      p.ball_velocity = vec3(vx, vy,vz)
-    }
-  }
-
-}
-
-class Particle{
-  constructor(x, y, z, mass, vx,vy,vz, curve_color=color( 0, 0, 1, 1 )) {
-    this.shapes = {'ball' : new defs.Subdivision_Sphere( 4 )}
-    this.materials   = { shader: new defs.Phong_Shader(), ambient: .2, diffusivity: 1, specularity:  1, color: color( .9,.5,.9,1 ) }
-    this.ball_location = vec3(x, y, z);
-    this.ball_radius = 0.2;
-    this.curve_color = curve_color
-    this.ball_transform = Mat4.translation(...this.ball_location)
-        .times(Mat4.scale(this.ball_radius, this.ball_radius, this.ball_radius));
-    this.ball_velocity = vec3(vx,vy,vz)
-    this.gravity = 9.8
-    this.ball_accel = vec3(0,-this.gravity, 0)
-    this.bounce_factor = 0.5
-    this.mass = mass
-    this.connected_springs = []
-    this.ks_ground = 5000
-    this.kd_ground = 10
-    this.newAccel = this.ball_accel
-    this.integration = "symplectic"
-  }
-
-  apply_forces() {
-    let total_force = vec3(0, -this.gravity * this.mass, 0);
-    let ground_level = 0;
-    
-    if (this.ball_location[1] - this.ball_radius/2 < ground_level) {
-        let penetration = ground_level - (this.ball_location[1]-this.ball_radius/2);
-        let velocity_y = this.ball_velocity[1];
-        
-        let ground_force_y = this.ks_ground * penetration - this.kd_ground * velocity_y;
-        total_force = total_force.plus(vec3(0, ground_force_y, 0));
-    }
-    for (let spring of this.connected_springs) {
-      total_force = total_force.plus(spring.compute_force_on(this));
-    }
-    return total_force.times(1 / this.mass);
-  }
-
-  draw(webgl_manager, uniforms) {
-    this.ball_transform = Mat4.translation(...this.ball_location)
-        .times(Mat4.scale(this.ball_radius, this.ball_radius, this.ball_radius));
-    this.shapes.ball.draw( webgl_manager, uniforms, this.ball_transform, { ...this.materials, color: this.curve_color } );
-  }
-
-  update(dt) {
-    if(this.integration == "symplectic"){
-      this.ball_velocity = this.ball_velocity.plus(this.ball_accel.times(dt))
-      this.ball_location = this.ball_location.plus(this.ball_velocity.times(dt))
-    }
-    else if(this.integration == "euler"){
-      this.ball_location = this.ball_location.plus(this.ball_velocity.times(dt))
-      this.ball_velocity = this.ball_velocity.plus(this.ball_accel.times(dt))
-    }
-    else if(this.integration == "verlet"){
-      // let newAccel = this.apply_forces()
-      this.ball_velocity = this.ball_velocity.plus(this.ball_accel.plus(this.newAccel).times(dt*0.5))
-      this.ball_location = this.ball_location.plus(this.ball_velocity.times(dt)).plus(this.ball_accel.times((dt**2)*0.5))
-      this.ball_accel = this.newAccel
-    }
-  }
-}
-
-class Spring extends Shape{
-  constructor(p1, p2, ks, kd, rest_length = -1, curve_color=color( 1, 0, 0, 1 )) {
-    super("position", "normal");
-    this.p1 = p1;
-    this.p2 = p2;
-    this.ks = ks;
-    this.kd = kd;
-    this.rest_length = rest_length > 0 ? rest_length : p1.ball_location.minus(p2.ball_location).norm();
-    this.material = { shader: new defs.Phong_Shader(), ambient: 1.0, color: curve_color }
-    this.arrays.position.push(p1.ball_location);
-    this.arrays.position.push(p2.ball_location);
-    this.arrays.normal.push(vec3(0, 0, 0));
-    this.arrays.normal.push(vec3(0, 0, 0));
-    this.p1.connected_springs.push(this);
-    this.p2.connected_springs.push(this);
-  }
-
-  compute_force_on(particle) {
-    let other = this.p1 === particle ? this.p2 : this.p1;
-    let delta = other.ball_location.minus(particle.ball_location);
-    let dist = delta.norm();
-    let force_magnitude = this.ks * (dist - this.rest_length);
-    let damping = this.kd * (other.ball_velocity.minus(particle.ball_velocity)).dot(delta.normalized());
-    return delta.normalized().times(force_magnitude + damping);
-  }
-
-  draw(webgl_manager, uniforms) {
-    // call super with "LINE_STRIP" mode
-    super.draw(webgl_manager, uniforms, Mat4.identity(), this.material, "LINE_STRIP");
-  }
-
-  update(webgl_manager) {
-    this.arrays.position[0] = this.p1.ball_location
-    this.arrays.position[1] = this.p2.ball_location
-    // this.arrays.position.forEach((v, i) => v = curve_function(i / this.sample_count));
-    this.copy_onto_graphics_card(webgl_manager.context);
-    // Note: vertex count is not changed.
-    // not tested if possible to change the vertex count.
-  }
-}
-
-
-export const Part_three_chain_base = defs.Part_three_chain_base =
+export
+const Part_three_chain_base = defs.Part_three_chain_base =
     class Part_three_chain_base extends Component
     {                                          // **My_Demo_Base** is a Scene that can be added to any display canvas.
                                                // This particular scene is broken up into two pieces for easier understanding.
@@ -352,21 +110,23 @@ export const Part_three_chain_base = defs.Part_three_chain_base =
         this.materials.metal   = { shader: phong, ambient: .2, diffusivity: 1, specularity:  1, color: color( .9,.5,.9,1 ) }
         this.materials.rgb = { shader: tex_phong, ambient: .5, texture: new Texture( "assets/rgb.jpg" ) }
 
-        this.simulation = new Simulation()
-        this.simulation.createParticles(9)
-        this.simulation.createSprings(8)
-        this.simulation.setParticle(0,0,10,0,1, 0,0,0)
-        let startY = 9.5
-        for(let i  = 1; i<this.simulation.particles.length; i++){
-          this.simulation.setParticle(i, 0, startY, 0,1, 0,0,0)
-          this.simulation.setSpring(i-1, i-1, i, 30, 10, 0.5)
-          startY -= 0.5
-        }
-        // this.ball_path = new Curve_Shape(100, )
         this.ball_location = vec3(1, 1, 1);
         this.ball_radius = 0.25;
 
-        // TODO: you should create the necessary shapes
+        this.chainSimulation = new Chain_Sim();
+        this.dt = 1/60;
+        this.sim_speed = 0.5;
+        this.t_sim = 0;
+        this.t_step = 1/1000;
+        this.t_spline = 0;
+        this.i_spline = 0;
+        this.spline = [[0, 5, 0, -20, 0, 20], [0, 5, 5, 20, 0, 20], [5, 5, 5, 20, 0, -20], [5, 5, 0, -20, 0, -20], [0, 5, 0, -20, 0, 20]];
+        this.tangentScalingFactor = 0.25;
+        this.curve_fn = null;
+        this.sample_cnt = 0;
+        // this.curve = new Curve_Shape(null, 100);
+        this.curves = [];
+        this.update_scene();
       }
 
       render_animation( caller )
@@ -445,19 +205,94 @@ export class Part_three_chain extends Part_three_chain_base
     const blue = color( 0,0,1,1 ), yellow = color( 0.7,1,0,1 );
 
     const t = this.t = this.uniforms.animation_time/1000;
-    const dt = this.dt = Math.min(1/30, this.uniforms.animation_delta_time/1000);
-    this.simulation.update(t, dt, caller)
+
     // !!! Draw ground
     let floor_transform = Mat4.translation(0, 0, 0).times(Mat4.scale(10, 0.01, 10));
     this.shapes.box.draw( caller, this.uniforms, floor_transform, { ...this.materials.plastic, color: yellow } );
 
-    for(let p of this.simulation.particles){
-      p.draw(caller, this.uniforms)
+    // !!! Draw ball (for reference)
+    // let ball_transform = Mat4.translation(this.ball_location[0], this.ball_location[1], this.ball_location[2])
+    //     .times(Mat4.scale(this.ball_radius, this.ball_radius, this.ball_radius));
+    // this.shapes.ball.draw( caller, this.uniforms, ball_transform, { ...this.materials.metal, color: blue } );
+
+    let dt = this.dt = 1/60;
+    dt *= this.sim_speed;
+    let t_step = this.t_step;
+    let t_sim = 0;
+    let t_next = t_sim + dt;
+    for (let i = 0; i < this.curves.length; i++) {
+      this.curves[i].draw(caller, this.uniforms);
     }
-    for(let s of this.simulation.springs){
-      s.draw(caller, this.uniforms)
+    for (; t_sim <= t_next; t_sim += t_step) {
+      // this.simulation_obj.update(dt);
+      this.chainSimulation.chainSim.update(t_sim);
+      this.chainSimulation.chainSim.particles[0].ext_force = vec3(0, 0, 0);
+      this.chainSimulation.chainSim.particles[0].acc = vec3(0, 0, 0);
+      this.chainSimulation.chainSim.particles[0].vel = vec3(0, 0, 0);
     }
-    // TODO: you should draw spline here.
+    let prevPoint = this.spline[0];
+    let currPoint = this.spline[1];
+    let tangentScalingFactor = this.tangentScalingFactor;
+    if (this.t_spline >= 1) {
+      this.i_spline += 1;
+      this.t_spline = 0;
+    }
+    if (this.i_spline >= 4) {
+      this.i_spline = 0;
+    }
+    if (this.i_spline >= 0 && this.i_spline < 1) {
+      prevPoint = this.spline[0];
+      currPoint = this.spline[1];
+    }
+    if (this.i_spline >= 1 && this.i_spline < 2) {
+      prevPoint = this.spline[1];
+      currPoint = this.spline[2];
+    }
+    if (this.i_spline >= 2 && this.i_spline < 3) {
+      prevPoint = this.spline[2];
+      currPoint = this.spline[3];
+    }
+    if (this.i_spline >= 3 && this.i_spline < 4) {
+      prevPoint = this.spline[3];
+      currPoint = this.spline[4];
+    }
+    let x0 = prevPoint[0];
+    let x1 = currPoint[0];
+    let y0 = prevPoint[1];
+    let y1 = currPoint[1];
+    let z0 = prevPoint[2];
+    let z1 = currPoint[2];
+    let sx0 = prevPoint[3];
+    let sx1 = currPoint[3];
+    let sy0 = prevPoint[4];
+    let sy1 = currPoint[4];
+    let sz0 = prevPoint[5];
+    let sz1 = currPoint[5];
+    let prevx = x0;
+    let prevy = y0;
+    let prevz = z0;
+    let f1_val = this.f1(this.t_spline);
+    let f2_val = this.f2(this.t_spline);
+    let f3_val = this.f3(this.t_spline);
+    let f4_val = this.f4(this.t_spline);
+    let x = f1_val * x0 + f2_val * x1 + f3_val * sx0 * tangentScalingFactor + f4_val * sx1 * tangentScalingFactor;
+    let y = f1_val * y0 + f2_val * y1 + f3_val * sy0 * tangentScalingFactor + f4_val * sy1 * tangentScalingFactor;
+    let z = f1_val * z0 + f2_val * z1 + f3_val * sz0 * tangentScalingFactor + f4_val * sz1 * tangentScalingFactor;
+    this.chainSimulation.chainSim.particles[0].pos = vec3(x, y, z);
+    this.t_spline += 0.005;
+    this.chainSimulation.chainSim.draw(caller, this.uniforms, this.shapes, this.materials);
+  }
+  f1(t) {
+    return (2 * t**3) - (3 * t**2) + 1;
+  }
+  f2(t) {
+    return (-2 * t**3) + (3 * t**2);
+  }
+  f3(t) {
+    return (t**3) - (2 * t**2) + t;
+  }
+  f4(t) {
+    return (t**3) - (t**2);
   }
 
   render_controls()
@@ -500,4 +335,36 @@ export class Part_three_chain extends Part_three_chain_base
     document.getElementById("output").value = "start";
     //TODO
   }
+  update_scene() { // callback for Draw button
+    // document.getElementById("output").value = "update_scene";
+    let tangentScalingFactor = 1;
+    if (this.spline.length >= 2) {
+      tangentScalingFactor = 1/(this.spline.length-1);
+    }
+    for (let i = 1; i < this.spline.length; i++) {
+      let prevPoint = this.spline[i-1];
+      let currPoint = this.spline[i];
+      let x0 = prevPoint[0];
+      let x1 = currPoint[0];
+      let y0 = prevPoint[1];
+      let y1 = currPoint[1];
+      let z0 = prevPoint[2];
+      let z1 = currPoint[2];
+      let sx0 = prevPoint[3];
+      let sx1 = currPoint[3];
+      let sy0 = prevPoint[4];
+      let sy1 = currPoint[4];
+      let sz0 = prevPoint[5];
+      let sz1 = currPoint[5];
+      this.curve_fn =
+        (t) => vec3(
+            this.f1(t) * x0 + this.f2(t) * x1 + this.f3(t) * sx0 * tangentScalingFactor + this.f4(t) * sx1 * tangentScalingFactor,
+            this.f1(t) * y0 + this.f2(t) * y1 + this.f3(t) * sy0 * tangentScalingFactor + this.f4(t) * sy1 * tangentScalingFactor,
+            this.f1(t) * z0 + this.f2(t) * z1 + this.f3(t) * sz0 * tangentScalingFactor + this.f4(t) * sz1 * tangentScalingFactor,
+        );
+        this.sample_cnt = 1000;
+        // this.curve = new Curve_Shape(this.curve_fn, this.sample_cnt);
+        this.curves.push(new Curve_Shape(this.curve_fn, this.sample_cnt));
+  }
+}
 }

@@ -3,83 +3,11 @@ import {tiny, defs} from './examples/common.js';
 // Pull these names into this module's scope for convenience:
 const { vec3, vec4, color, Mat4, Shape, Material, Shader, Texture, Component } = tiny;
 
-class Spline {
-  constructor(){
-    this.points = []
-    this.tangents = []
-    this.size = 0
-    this.arc_length_table = []
-  }
-
-  addPoint(x,y,z, tx, ty, tz){
-    this.points.push(vec3(x,y,z))
-    this.tangents.push(vec3(tx, ty, tz))
-    this.size += 1
-    this.makeArcLengthTable()
-  }
-
-  setPoint(index, x,y,z){
-    this.points[index] = vec3(x,y,z)
-    this.makeArcLengthTable()
-  }
-
-  setTangent(index, x,y,z){
-    this.tangents[index] = vec3(x,y,z)
-    this.makeArcLengthTable()
-  }
-
-  get_position(t){
-    if(this.size<2){return vec3(0,0,0)}
-
-    const A = Math.floor(t * (this.size - 1));
-    const B = Math.ceil(t*(this.size-1));
-    const s = (t*(this.size-1))%1.0
-
-    let a = this.points[A].copy()
-    let b = this.points[B].copy()
-    let sa = this.tangents[A].copy()
-    let sb = this.tangents[B].copy()
-
-    let h00 = 2*s**3 - 3*s**2 + 1;
-    let h10 = s**3 - 2*s**2 + s;
-    let h01 = -2*s**3 + 3*s**2;
-    let h11 = s**3 - s**2;
-    
-    let point =vec3(
-      a[0]*h00 + sa[0]*h10/(this.size-1) + b[0]*h01 + sb[0] * h11/(this.size-1),
-      a[1]*h00 + sa[1]*h10/(this.size-1) + b[1]*h01 + sb[1] * h11/(this.size-1),
-      a[2]*h00 + sa[2]*h10/(this.size-1) + b[2]*h01 + sb[2] * h11/(this.size-1),
-    )
-    return point
-  }
-
-  makeArcLengthTable(){
-    this.arc_length_table = []
-    let lastPoint = null
-    for(let i = 0; i< 1001;i++){
-      let t = i/1000
-      let point = this.get_position(t)
-      if(!lastPoint){
-        lastPoint = point
-        this.arc_length_table.push([0,0,0])
-      }
-      else{
-          let pointLength = ((point[0] - lastPoint[0])**2 + (point[1] - lastPoint[1])**2 + (point[2] - lastPoint[2])**2)**(1/2)
-          this.arc_length_table.push([i, t, pointLength + this.arc_length_table[i-1][2]])
-          lastPoint = point
-      }
-    }
-  }
-
-  getArcLength(){
-    return this.arc_length_table[this.arc_length_table.length-1][2]
-  }
-}
-
-
+// TODO: you should implement the required classes here or in another file.
+export
 class Curve_Shape extends Shape {
   // curve_function: (t) => vec3
-  constructor(curve_function, sample_count, curve_color=color( 1, 0, 0, 1 )) {
+  constructor(curve_function, sample_count, curve_color=color( 0, 0, 1, 1 )) {
     super("position", "normal");
 
     this.material = { shader: new defs.Phong_Shader(), ambient: 1.0, color: curve_color }
@@ -101,8 +29,12 @@ class Curve_Shape extends Shape {
 
   update(webgl_manager, uniforms, curve_function) {
     if (curve_function && this.sample_count) {
-      for (let i = 0; i < this.sample_count + 1; i++) {
-        let t = 1.0 * i / this.sample_count;
+      // for (let i = 0; i < this.sample_count + 1; i++) {
+      //   let t = 1.0 * i / this.sample_count;
+      //   this.arrays.position[i] = curve_function(t);
+      let step_size = 1 / this.sample_count;
+      for (let t = 0; t < 1; t+=step_size) {
+        let i = t * this.sample_count;
         this.arrays.position[i] = curve_function(t);
       }
     }
@@ -113,8 +45,8 @@ class Curve_Shape extends Shape {
   }
 };
 
-// TODO: you should implement the required classes here or in another file.
-export const Part_one_hermite_base = defs.Part_one_hermite_base =
+export
+const Part_one_hermite_base = defs.Part_one_hermite_base =
     class Part_one_hermite_base extends Component
     {                                          // **My_Demo_Base** is a Scene that can be added to any display canvas.
                                                // This particular scene is broken up into two pieces for easier understanding.
@@ -137,9 +69,6 @@ export const Part_one_hermite_base = defs.Part_one_hermite_base =
           'ball' : new defs.Subdivision_Sphere( 4 ),
           'axis' : new defs.Axis_Arrows() };
 
-        this.sample_cnt = 1000;
-        this.curve = new Curve_Shape(null, this.sample_cnt);
-        this.hermite_spline = new Spline()
         // *** Materials: ***  A "material" used on individual shapes specifies all fields
         // that a Shader queries to light/color it properly.  Here we use a Phong shader.
         // We can now tweak the scalar coefficients from the Phong lighting formulas.
@@ -154,8 +83,15 @@ export const Part_one_hermite_base = defs.Part_one_hermite_base =
         this.ball_location = vec3(1, 1, 1);
         this.ball_radius = 0.25;
 
+        this.curve_fn = null;
+        this.sample_cnt = 0;
+        // this.curve = new Curve_Shape(null, 100);
+        this.curves = [];
+
         // TODO: you should create a Spline class instance
-        // this.spline = new HermiteSpline()
+        this.spline = [];
+        this.lookup_table = [];
+        this.step_size = 0.001;
       }
 
       render_animation( caller )
@@ -197,7 +133,6 @@ export const Part_one_hermite_base = defs.Part_one_hermite_base =
     }
 
 
-
 export class Part_one_hermite extends Part_one_hermite_base
 {                                                    // **Part_one_hermite** is a Scene object that can be added to any display canvas.
                                                      // This particular scene is broken up into two pieces for easier understanding.
@@ -206,7 +141,6 @@ export class Part_one_hermite extends Part_one_hermite_base
                                                      // the shapes.  We isolate that code so it can be experimented with on its own.
                                                      // This gives you a very small code sandbox for editing a simple scene, and for
                                                      // experimenting with matrix transformations.
-  parse_button_press = false
   render_animation( caller )
   {                                                // display():  Called once per frame of animation.  For each shape that you want to
     // appear onscreen, place a .draw() call for it inside.  Each time, pass in a
@@ -244,14 +178,21 @@ export class Part_one_hermite extends Part_one_hermite_base
     // !!! Draw ball (for reference)
     // let ball_transform = Mat4.translation(this.ball_location[0], this.ball_location[1], this.ball_location[2])
     //     .times(Mat4.scale(this.ball_radius, this.ball_radius, this.ball_radius));
-    // this.shapes.ball.draw( caller, this.uniforms, ball_transform, { ...this.materials.metal, color: this.blue } );
-    // TODO: you should draw spline here.
-    this.curve.draw(caller, this.uniforms);
-    // this.curve.update(caller)
-    // if(this.parse_button_press){
-    //   this.curve.update()
-    //   this.parse_button_press = false
+    // this.shapes.ball.draw( caller, this.uniforms, ball_transform, { ...this.materials.metal, color: blue } );
+
+    // this.curve.draw(caller, this.uniforms);
+    for (let i = 0; i < this.curves.length; i++) {
+      this.curves[i].draw(caller, this.uniforms);
+    }
+
+    // add some fluctuation
+    // if (this.curve_fn && this.sample_cnt === this.curve.sample_count) {
+    //   this.curve.update(caller, this.uniforms,
+    //       (s) => this.curve_fn(s).plus(vec3(Math.cos(this.t * s), Math.sin(this.t), 0)) );
     // }
+
+
+    // TODO: you should draw spline here.
   }
 
   render_controls()
@@ -291,94 +232,165 @@ export class Part_one_hermite extends Part_one_hermite_base
     } );
      */
   }
+  f1(t) {
+    return (2 * t**3) - (3 * t**2) + 1;
+  }
+  f2(t) {
+    return (-2 * t**3) + (3 * t**2);
+  }
+  f3(t) {
+    return (t**3) - (2 * t**2) + t;
+  }
+  f4(t) {
+    return (t**3) - (t**2);
+  }
+
+  arc_length_calc() {
+      this.lookup_table = [];
+      this.lookup_table.push(0);
+      let tangentScalingFactor = 1;
+      if (this.spline.length >= 2) {
+        tangentScalingFactor = 1/(this.spline.length-1);
+      }
+      for (let i = 1; i < this.spline.length; i++) {
+        let prevPoint = this.spline[i-1];
+        let currPoint = this.spline[i];
+        let x0 = prevPoint[0];
+        let x1 = currPoint[0];
+        let y0 = prevPoint[1];
+        let y1 = currPoint[1];
+        let z0 = prevPoint[2];
+        let z1 = currPoint[2];
+        let sx0 = prevPoint[3];
+        let sx1 = currPoint[3];
+        let sy0 = prevPoint[4];
+        let sy1 = currPoint[4];
+        let sz0 = prevPoint[5];
+        let sz1 = currPoint[5];
+        let prevx = x0;
+        let prevy = y0;
+        let prevz = z0;
+        // for (let t = i-1; t < i; t += this.step_size) {
+        for (let t = 0; t < 1; t += this.step_size) {
+          let f1_val = this.f1(t);
+          let f2_val = this.f2(t);
+          let f3_val = this.f3(t);
+          let f4_val = this.f4(t);
+          let x = f1_val * x0 + f2_val * x1 + f3_val * sx0 * tangentScalingFactor + f4_val * sx1 * tangentScalingFactor;
+          let y = f1_val * y0 + f2_val * y1 + f3_val * sy0 * tangentScalingFactor + f4_val * sy1 * tangentScalingFactor;
+          let z = f1_val * z0 + f2_val * z1 + f3_val * sz0 * tangentScalingFactor + f4_val * sz1 * tangentScalingFactor;
+          let distance = ((x - prevx)**2 + (y - prevy)**2 + (z - prevz)**2) ** 0.5;
+          this.lookup_table.push(distance + this.lookup_table[this.lookup_table.length - 1]);
+          prevx = x;
+          prevy = y;
+          prevz = z;
+        }
+      }
+      return this.lookup_table[this.lookup_table.length - 1];
+}
 
   parse_commands() {
-    //TODO
-    let text = document.getElementById("input").value;
-    let commands = text.split('\n')
-    for(let i = 0; i< commands.length; i++){
-      commands[i] = commands[i].replace(/\s+/g, ' ').trim()
-      const words = commands[i].split(' ');
-      if (words.length == 8) {
-        if(words[0] == "add" && words[1] == "point"){
-          const x = parseFloat(words[2]);
-          const y = parseFloat(words[3]);
-          const z = parseFloat(words[4]);
-          const sx = parseFloat(words[5]);
-          const sy = parseFloat(words[6]);
-          const sz = parseFloat(words[7]);
-
-          this.hermite_spline.addPoint(x,y,z,sx,sy,sz)
-          // this.curve = new Curve_Shape((t) => this.hermite_spline.get_position(t), this.sample_cnt)
-        }
-        else{
-          document.getElementById("output").value = "invalid input";
-        }
+    // document.getElementById("output").value = "parse_commands";
+    let input_text = document.getElementById("input").value;
+    const lines = input_text.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      lines[i] = lines[i].replace(/,/g, "");
+      lines[i] = lines[i].replace(/</g, "");
+      lines[i] = lines[i].replace(/>/g, "");
+      let words = lines[i].split(/\s+/);
+      if (words[0] === "add") {
+        let x = parseFloat(words[2]);
+        let y = parseFloat(words[3]);
+        let z = parseFloat(words[4]);
+        let sx = parseFloat(words[5]);
+        let sy = parseFloat(words[6]);
+        let sz = parseFloat(words[7]);
+        this.spline.push([x, y, z, sx, sy, sz]);
       }
-      else if(words.length == 6){
-        if(words[0] == "set" && words[1] == "tangent"){
-          const index = parseFloat(words[2])
-          const sx = parseFloat(words[3])
-          const sy = parseFloat(words[4])
-          const sz = parseFloat(words[5])
-          this.curve.setTangent(index, vec3(sx, sy, sz))
+      else if (words[0] == "set") {
+        if (words[1] === "tangent") {
+          let t = parseInt(words[2]);
+          let sx = parseFloat(words[3]);
+          let sy = parseFloat(words[4]);
+          let sz = parseFloat(words[5]);
+          this.spline[t][3] = sx;
+          this.spline[t][4] = sy;
+          this.spline[t][5] = sz;
         }
-        else if(words[0] == "set" && words[1] == "point"){
-          const index = parseFloat(words[2])
-          const x = parseFloat(words[3])
-          const y = parseFloat(words[4])
-          const z = parseFloat(words[5])
-          this.curve.setPoint(index, vec3(x, y, z))
-        }
-        else{
-          document.getElementById("output").value = "invalid input";
-        }
-      }
-      else if(words.length == 1){
-        if(words[0] == "get_arc_length"){
-          document.getElementById("output").value = this.hermite_spline.getArcLength();
-        }
-        else{
-          document.getElementById("output").value = "invalid input";
-        }
+        else {
+          let t = parseInt(words[2]);
+          let x = parseFloat(words[3]);
+          let y = parseFloat(words[4]);
+          let z = parseFloat(words[5]);
+          this.spline[t][0] = x;
+          this.spline[t][1] = y;
+          this.spline[t][2] = z;
+        } 
       }
       else {
-        document.getElementById("output").value = "invalid input";
+        document.getElementById("output").value = "Arc Length: " + this.arc_length_calc();
       }
     }
   }
 
   update_scene() { // callback for Draw button
-    this.curve = new Curve_Shape((t) => this.hermite_spline.get_position(t), this.sample_cnt)
+    // document.getElementById("output").value = "update_scene";
+    let tangentScalingFactor = 1;
+    if (this.spline.length >= 2) {
+      tangentScalingFactor = 1/(this.spline.length-1);
+    }
+    for (let i = 1; i < this.spline.length; i++) {
+      let prevPoint = this.spline[i-1];
+      let currPoint = this.spline[i];
+      let x0 = prevPoint[0];
+      let x1 = currPoint[0];
+      let y0 = prevPoint[1];
+      let y1 = currPoint[1];
+      let z0 = prevPoint[2];
+      let z1 = currPoint[2];
+      let sx0 = prevPoint[3];
+      let sx1 = currPoint[3];
+      let sy0 = prevPoint[4];
+      let sy1 = currPoint[4];
+      let sz0 = prevPoint[5];
+      let sz1 = currPoint[5];
+      this.curve_fn =
+        (t) => vec3(
+            this.f1(t) * x0 + this.f2(t) * x1 + this.f3(t) * sx0 * tangentScalingFactor + this.f4(t) * sx1 * tangentScalingFactor,
+            this.f1(t) * y0 + this.f2(t) * y1 + this.f3(t) * sy0 * tangentScalingFactor + this.f4(t) * sy1 * tangentScalingFactor,
+            this.f1(t) * z0 + this.f2(t) * z1 + this.f3(t) * sz0 * tangentScalingFactor + this.f4(t) * sz1 * tangentScalingFactor,
+        );
+        this.sample_cnt = 1000;
+        // this.curve = new Curve_Shape(this.curve_fn, this.sample_cnt);
+        this.curves.push(new Curve_Shape(this.curve_fn, this.sample_cnt));
   }
+}
 
   load_spline() {
-    let text = document.getElementById("input").value;
-    let commands = text.split('\n')
-    this.hermite_spline.points.length = 0
-    for(let i = 0; i< commands.length; i++){
-      let words = commands[i].split(' ')
-      if(i>0 && words != ""){
-        const x = parseFloat(words[0]);
-        const y = parseFloat(words[1]);
-        const z = parseFloat(words[2]);
-        const sx = parseFloat(words[3]);
-        const sy = parseFloat(words[4]);
-        const sz = parseFloat(words[5]);
-        this.hermite_spline.addPoint(x,y,z,sx,sy,sz)
-      }
+    // document.getElementById("output").value = "load_spline";
+    let input_text = document.getElementById("input").value;
+    const lines = input_text.split('\n');
+    this.spline = [];
+    for (let i = 1; i < lines.length; i++) {
+      let words = lines[i].split(/\s+/);
+      this.spline.push([parseFloat(words[0]), parseFloat(words[1]), parseFloat(words[2]), parseFloat(words[3]), parseFloat(words[4]), parseFloat(words[5])]);
     }
   }
 
   export_spline() {
-    let points = this.hermite_spline.points
-    let tangents = this.hermite_spline.tangents
-    let output = this.hermite_spline.size.toString() + "\n"
-    for(let i = 0; i< points.length; i++){
-      output += points[i][0].toString() + " " + points[i][1].toString() + " " + points[i][2].toString() + " "
-      output += tangents[i][0].toString() + " " + tangents[i][1].toString() + " " + tangents[i][2].toString() + "\n"
+    // document.getElementById("output").value = "export_spline";
+    let output_text = this.spline.length + '\n';
+    for (let i = 0; i < this.spline.length; i++) {
+      let x = this.spline[i][0];
+      let y = this.spline[i][1];
+      let z = this.spline[i][2];
+      let sx = this.spline[i][3];
+      let sy = this.spline[i][4];
+      let sz = this.spline[i][5];
+      output_text += x + " " + y + " " + z + " " + sx + " " + sy + " " + sz + "\n";
     }
-    document.getElementById("output").value = output;
+    output_text = output_text.slice(0, -1);
+    document.getElementById("output").value = output_text;
   }
-
 }
+
