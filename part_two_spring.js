@@ -73,16 +73,16 @@ class Spring {
     if (!this.valid) {
       throw "Initialization not complete";
     }
-    let dij = this.particle_1.pos.minus(this.particle_2.pos);
-    let dij_magnitude = dij.norm();
-    let dij_hat = dij.times(1/dij_magnitude);
-    let vij = this.particle_1.vel.minus(this.particle_2.vel);
-    let fs_ij = dij_hat.times(this.ks * (dij_magnitude - this.rest_length));
-    let fd_ij = dij_hat.times(this.kd * vij.dot(dij_hat));
-    let fe_ij = fs_ij.plus(fd_ij);
-    // let fe_ij = fs_ij;
-    this.particle_1.ext_force.subtract_by(fe_ij);
-    this.particle_2.ext_force.add_by(fe_ij);
+    // let dij = this.particle_1.pos.minus(this.particle_2.pos);
+    // let dij_magnitude = dij.norm();
+    // let dij_hat = dij.times(1/dij_magnitude);
+    // let vij = this.particle_1.vel.minus(this.particle_2.vel);
+    // let fs_ij = dij_hat.times(this.ks * (dij_magnitude - this.rest_length));
+    // let fd_ij = dij_hat.times(this.kd * vij.dot(dij_hat));
+    // let fe_ij = fs_ij.plus(fd_ij);
+    // // let fe_ij = fs_ij;
+    // this.particle_1.ext_force.subtract_by(fe_ij);
+    // this.particle_2.ext_force.add_by(fe_ij);
   }
 }
 

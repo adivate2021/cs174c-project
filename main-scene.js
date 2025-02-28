@@ -27,8 +27,10 @@ import {Text_Demo}
     from "./examples/text-demo.js";
 import {Transforms_Sandbox_Base, Transforms_Sandbox}
     from "./examples/transforms-sandbox.js";
+// import { Claw_Scene } from './part_three_chain.js';
 
-import {Part_three_chain} from "./part_three_chain.js";
+// import {Part_three_chain} from "./part_three_chain.js";
+import {Claw_Scene} from "./part_three_chain.js";
 
 Object.assign (defs,
     {Minimal_Webgl_Demo},
@@ -41,15 +43,18 @@ Object.assign (defs,
     {Scene_To_Texture_Demo},
     {Text_Demo},
     {Transforms_Sandbox_Base, Transforms_Sandbox},
-    {Part_three_chain}
+    // {Part_three_chain}
+    {Claw_Scene}
 );
 
 // ******************** SELECT THE DEMO TO DISPLAY:
 
-let scenes = {1: Part_three_chain};
+// let scenes = {1: Part_three_chain};
+let scenes = {1: Claw_Scene};
 const scene_selector = (i) => scenes[i];
 
-const main_scene        = Part_three_chain; // default
+// const main_scene        = Part_three_chain; // default
+const main_scene = Claw_Scene;
 const additional_scenes = [];
 
 export {main_scene, scene_selector, additional_scenes, defs};

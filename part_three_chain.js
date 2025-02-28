@@ -21,11 +21,50 @@ class Chain_Sim {
       this.chainSim.springs.push(new Spring());
       this.chainSim.springs[i].particle_1 = this.chainSim.particles[i];
       this.chainSim.springs[i].particle_2 = this.chainSim.particles[i+1];
-      this.chainSim.springs[i].ks = 50;
+      this.chainSim.springs[i].ks = 500;
       this.chainSim.springs[i].kd = 10;
       this.chainSim.springs[i].rest_length = 0.5;
       this.chainSim.springs[i].valid = true;
     }
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[3].mass = 1;
+    this.chainSim.particles[3].pos = vec3(1.5, 3, 0);
+    this.chainSim.particles[3].vel = vec3(0, 0, 0);
+    this.chainSim.particles[3].valid = true;
+    this.chainSim.springs.push(new Spring());
+    this.chainSim.springs[2].particle_1 = this.chainSim.particles[2];
+    this.chainSim.springs[2].particle_2 = this.chainSim.particles[3];
+    this.chainSim.springs[2].ks = 5000;
+    this.chainSim.springs[2].kd = 10;
+    this.chainSim.springs[2].rest_length = 2.5;
+    this.chainSim.springs[2].valid = true;
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[4].mass = 1;
+    this.chainSim.particles[4].pos = vec3(-0.75, 3, 1.3);
+    this.chainSim.particles[4].vel = vec3(0, 0, 0);
+    this.chainSim.particles[4].valid = true;
+    this.chainSim.springs.push(new Spring());
+    this.chainSim.springs[3].particle_1 = this.chainSim.particles[2];
+    this.chainSim.springs[3].particle_2 = this.chainSim.particles[4];
+    this.chainSim.springs[3].ks = 5000;
+    this.chainSim.springs[3].kd = 10;
+    this.chainSim.springs[3].rest_length = 2.5;
+    this.chainSim.springs[3].valid = true;
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[5].mass = 1;
+    this.chainSim.particles[5].pos = vec3(-0.75, 3, -1.3);
+    this.chainSim.particles[5].vel = vec3(0, 0, 0);
+    this.chainSim.particles[5].valid = true;
+    this.chainSim.springs.push(new Spring());
+    this.chainSim.springs[4].particle_1 = this.chainSim.particles[2];
+    this.chainSim.springs[4].particle_2 = this.chainSim.particles[5];
+    this.chainSim.springs[4].ks = 5000;
+    this.chainSim.springs[4].kd = 10;
+    this.chainSim.springs[4].rest_length = 2.5;
+    this.chainSim.springs[4].valid = true;
+
+
+
     this.chainSim.g_acc = vec3(0, -9.8, 0);
     this.chainSim.ground_ks = 5000;
     this.chainSim.ground_kd = 10;
@@ -164,12 +203,12 @@ const Part_three_chain_base = defs.Part_three_chain_base =
         this.uniforms.lights = [ defs.Phong_Shader.light_source( light_position, color( 1,1,1,1 ), 1000000 ) ];
 
         // draw axis arrows.
-        this.shapes.axis.draw(caller, this.uniforms, Mat4.identity(), this.materials.rgb);
+        // this.shapes.axis.draw(caller, this.uniforms, Mat4.identity(), this.materials.rgb);
       }
     }
 
 
-export class Part_three_chain extends Part_three_chain_base
+export class Claw_Scene extends Part_three_chain_base
 {                                                    // **Part_one_hermite** is a Scene object that can be added to any display canvas.
                                                      // This particular scene is broken up into two pieces for easier understanding.
                                                      // See the other piece, My_Demo_Base, if you need to see the setup code.
@@ -280,6 +319,11 @@ export class Part_three_chain extends Part_three_chain_base
     let y = f1_val * y0 + f2_val * y1 + f3_val * sy0 * tangentScalingFactor + f4_val * sy1 * tangentScalingFactor;
     let z = f1_val * z0 + f2_val * z1 + f3_val * sz0 * tangentScalingFactor + f4_val * sz1 * tangentScalingFactor;
     this.chainSimulation.chainSim.particles[0].pos = vec3(x, y, z);
+    this.chainSimulation.chainSim.particles[1].pos = vec3(x, y-0.5, z);
+    this.chainSimulation.chainSim.particles[2].pos = vec3(x, y-1, z);
+    this.chainSimulation.chainSim.particles[3].pos = vec3(1.5 + x, y-2, z);
+    this.chainSimulation.chainSim.particles[4].pos = vec3(x - 0.75, y-2, z + 1.3);
+    this.chainSimulation.chainSim.particles[5].pos = vec3(x - 0.75, y-2, z - 1.3);
     this.t_spline += 0.005;
     this.chainSimulation.chainSim.draw(caller, this.uniforms, this.shapes, this.materials);
     let box_transform = Mat4.translation(5,0.2,0).times(Mat4.scale(0.2,0.2,0.2))
@@ -311,17 +355,19 @@ export class Part_three_chain extends Part_three_chain_base
   render_controls()
   {                                 // render_controls(): Sets up a panel of interactive HTML elements, including
     // buttons with key bindings for affecting this scene, and live info readouts.
-    this.control_panel.innerHTML += "Part Three: (no buttons)";
+    this.control_panel.innerHTML += "Claw Buttons";
     this.new_line();
     
-
-    /* Some code for your reference
-    this.key_triggered_button( "Copy input", [ "c" ], function() {
-      let text = document.getElementById("input").value;
-      console.log(text);
-      document.getElementById("output").value = text;
+    this.key_triggered_button( "LOWER", [ "l" ], function() {
+      // let text = document.getElementById("input").value;
+      // console.log(text);
+      // document.getElementById("output").value = text;
     } );
     this.new_line();
+    this.key_triggered_button("OPEN/CLOSE", ["o"], function() {
+
+    });
+    /*this.new_line();
     this.key_triggered_button( "Relocate", [ "r" ], function() {
       let text = document.getElementById("input").value;
       const words = text.split(' ');
