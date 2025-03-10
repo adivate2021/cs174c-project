@@ -1,0 +1,234 @@
+// main.js - Entry point for Three.js version of the CS174C Project
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { ClawScene } from './claw.js';
+import { HermitePath } from './three-hermite.js';
+import { catmullRomTangents } from './three-catmull-rom.js';
+
+// Make THREE and OrbitControls available globally for other modules
+window.THREE = THREE;
+window.OrbitControls = OrbitControls;
+
+// Global reference to the scene instance
+let clawSceneInstance = null;
+
+// Check Three.js availability and report details
+function checkThree() {
+    console.log("Checking Three.js availability...");
+    
+    if (typeof THREE === 'undefined') {
+        console.error("THREE is not defined! Make sure Three.js is loaded.");
+        return false;
+    }
+    
+    console.log("THREE is defined:", THREE.REVISION);
+    
+    if (typeof OrbitControls === 'undefined') {
+        console.log("OrbitControls is not defined!");
+        return false;
+    }
+    
+    console.log("OrbitControls is defined");
+    return true;
+}
+
+// Wait for the page to load
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM content loaded, attempting to initialize...");
+    
+    // Since we're using ES modules, Three.js should already be loaded
+    console.log('Three.js loaded as module, initializing...');
+    init();
+});
+
+function init() {
+    console.log("Initializing...");
+    
+    if (!checkThree()) {
+        console.error("Three.js check failed!");
+        return;
+    }
+    
+    try {
+        // Create the claw scene instance
+        clawSceneInstance = new ClawScene();
+        
+        console.log("ClawScene instance created");
+        
+        // Add window resize handler
+        window.addEventListener('resize', () => {
+            clawSceneInstance.onWindowResize();
+        });
+        
+        // Load the claw machine model
+        loadClawMachineModel(clawSceneInstance);
+        
+        // Setup controls
+        createControls(clawSceneInstance);
+        
+        // Start animation loop
+// main.js - Entry point for Three.js version of the CS174C Project
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { ClawScene } from './claw.js';
+import { HermitePath } from './three-hermite.js';
+import { catmullRomTangents } from './three-catmull-rom.js';
+
+// Make THREE and OrbitControls available globally for other modules
+window.THREE = THREE;
+window.OrbitControls = OrbitControls;
+
+// Global reference to the scene instance
+let clawSceneInstance = null;
+
+// Check Three.js availability and report details
+function checkThree() {
+    console.log("Checking Three.js availability...");
+    
+    if (typeof THREE === 'undefined') {
+        console.error("THREE is not defined! Make sure Three.js is loaded.");
+        return false;
+    }
+    
+    console.log("THREE is defined:", THREE.REVISION);
+    
+    if (typeof OrbitControls === 'undefined') {
+        console.log("OrbitControls is not defined!");
+        return false;
+    }
+    
+    console.log("OrbitControls is defined");
+    return true;
+}
+
+// Wait for the page to load
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM content loaded, attempting to initialize...");
+    
+    // Since we're using ES modules, Three.js should already be loaded
+    console.log('Three.js loaded as module, initializing...');
+    init();
+});
+
+function init() {
+    console.log("Initializing...");
+    
+    if (!checkThree()) {
+        console.error("Three.js check failed!");
+        return;
+    }
+    
+    try {
+        // Create the claw scene instance
+        clawSceneInstance = new ClawScene();
+        
+        console.log("ClawScene instance created");
+        
+        // Add window resize handler
+        window.addEventListener('resize', () => {
+            clawSceneInstance.onWindowResize();
+        });
+        
+        // Load the claw machine model
+        loadClawMachineModel(clawSceneInstance);
+        
+        // Setup controls
+        createControls(clawSceneInstance);
+        
+        // Start animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update the scene
+            clawSceneInstance.update();
+            
+            // Render the scene
+            clawSceneInstance.render();
+        }
+        
+        animate();
+        
+    } catch (error) {
+        console.error("Error in init: ", error);
+    }
+}
+
+function createControls(scene) {
+    // Create controls container
+    const controlsContainer = document.createElement('div');
+    controlsContainer.style.position = 'absolute';
+    controlsContainer.style.top = '20px';
+    controlsContainer.style.right = '20px';
+    controlsContainer.style.display = 'flex';
+    controlsContainer.style.flexDirection = 'column';
+    controlsContainer.style.gap = '10px';
+    document.body.appendChild(controlsContainer);
+    
+    // Shared button styles
+    const buttonStyle = {
+        padding: '10px 20px',
+        backgroundColor: '#4CAF50',
+        color: 'white',
+        border: 'none',
+        borderRadius: '5px',
+        cursor: 'pointer',
+        fontSize: '16px',
+        fontWeight: 'bold',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+        transition: 'background-color 0.3s'
+    };
+    
+    // Create Reset button
+    const resetButton = document.createElement('button');
+    resetButton.textContent = 'Reset Simulation';
+    Object.assign(resetButton.style, buttonStyle);
+    resetButton.addEventListener('click', () => {
+        scene.resetSimulation();
+        console.log('Simulation reset');
+    });
+    resetButton.addEventListener('mouseover', () => {
+        resetButton.style.backgroundColor = '#45a049';
+    });
+    resetButton.addEventListener('mouseout', () => {
+        resetButton.style.backgroundColor = '#4CAF50';
+    });
+    controlsContainer.appendChild(resetButton);
+    
+    // Create Toggle Gravity button
+    const gravityButton = document.createElement('button');
+    gravityButton.textContent = 'Toggle Gravity';
+    gravityButton.style.backgroundColor = '#2196F3';
+    Object.assign(gravityButton.style, buttonStyle, { backgroundColor: '#2196F3' });
+    gravityButton.addEventListener('click', () => {
+        scene.toggleGravity();
+        console.log('Gravity toggled');
+    });
+    gravityButton.addEventListener('mouseover', () => {
+        gravityButton.style.backgroundColor = '#0b7dda';
+    });
+    gravityButton.addEventListener('mouseout', () => {
+        gravityButton.style.backgroundColor = '#2196F3';
+    });
+    controlsContainer.appendChild(gravityButton);
+    
+    // Create Move Claw button
+    const clawButton = document.createElement('button');
+    clawButton.textContent = 'Move Claw';
+    clawButton.style.backgroundColor = '#ff9800';
+    Object.assign(clawButton.style, buttonStyle, { backgroundColor: '#ff9800' });
+    clawButton.addEventListener('click', () => {
+        scene.moveClaw();
+        console.log('Claw movement toggled');
+    });
+    clawButton.addEventListener('mouseover', () => {
+        clawButton.style.backgroundColor = '#e68a00';
+    });
+    clawButton.addEventListener('mouseout', () => {
+        clawButton.style.backgroundColor = '#ff9800';
+    });
+    controlsContainer.appendChild(clawButton);
+    
+    // Create Randomize Balls button
+    const randomizeButton = document.createElement('button');

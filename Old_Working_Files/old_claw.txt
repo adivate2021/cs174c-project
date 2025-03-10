@@ -1,0 +1,733 @@
+// three-claw-scene.js - Main scene file for Three.js version
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ChainSim, BallPhysics, BoundingBoxCollider } from './three-physics.js';
+import { HermiteCurve, HermitePath } from './three-hermite.js';
+import { CatmullRomPath, catmullRomTangents } from './three-catmull-rom.js';
+import { Matrix4, Quaternion, Euler } from 'three';
+
+// Constants for the inverse kinematics
+const IK_ITERATIONS = 10;
+const IK_TOLERANCE = 0.01;
+const IK_DAMPING = 0.5;
+
+export class ClawScene {
+    constructor() {
+        // Claw movement properties - initialize before methods that might use them
+        this.claw_moving = false;
+        this.claw_position = new THREE.Vector3(0, 6, 0);
+        this.claw_target = new THREE.Vector3(0, 6, 0);
+        this.claw_movement_t = 0;
+        this.claw_movement_speed = 0.01;
+        
+        // Clock for animation timing
+        this.clock = new THREE.Clock();
+        this.clock.start();
+        
+        // Initialize scene and components
+        this.initScene();
+        this.initLights();
+        this.initGround();
+        this.initHermiteCurves();
+        this.initCameraControls();
+        this.initClawMachine();
+        this.initToys();
+        this.initInverseKinematics();
+        this.initSimulation();
+        
+        // Initialize physics
+        this.ballPhysics = new BallPhysics();
+        
+        // Store reference to the claw machine position
+        this.clawMachinePosition = new THREE.Vector3(0, 0, 0);
+        
+        console.log("ClawScene initialized");
+    }
+    
+    initScene() {
+        // Create a scene and set a light blue background
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87CEEB); // Light blue / sky blue
+        
+        // Create a camera
+        this.camera = new THREE.PerspectiveCamera(
+            50, 
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        
+        // Set initial camera position
+        this.camera.position.set(0, 10, 20);
+        
+        // Create a WebGL renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Add renderer to the document
+        document.body.appendChild(this.renderer.domElement);
+        
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
+        
+        // Add directional light (sun-like)
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.near = 0.1;
+        directionalLight.shadow.camera.far = 500;
+        directionalLight.shadow.camera.right = 30;
+        directionalLight.shadow.camera.left = -30;
+        directionalLight.shadow.camera.top = 30;
+        directionalLight.shadow.camera.bottom = -30;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        this.scene.add(directionalLight);
+        
+        // Add grid for reference
+        const grid = new THREE.GridHelper(50, 50, 0x808080, 0x808080);
+        grid.material.opacity = 0.2;
+        grid.material.transparent = true;
+        this.scene.add(grid);
+        
+        // Store reference to the claw position
+        this.claw_position = new THREE.Vector3(0, 5, 0);
+        
+        // Create an array to hold toys (birds)
+        this.toys = [];
+        
+        // Initialize basic physics simulation parameters
+        this.gravity = new THREE.Vector3(0, -9.8, 0); // Earth gravity
+        this.isGravityEnabled = true;
+        this.lastTime = performance.now() / 1000; // Convert to seconds
+    }
+    
+    initLights() {
+        // Add ambient light
+        this.ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        this.scene.add(this.ambientLight);
+        
+        // Add directional light (sun-like)
+        this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        this.directionalLight.position.set(5, 10, 7.5);
+        this.directionalLight.castShadow = true;
+        
+        // Configure shadow properties
+        this.directionalLight.shadow.mapSize.width = 2048;
+        this.directionalLight.shadow.mapSize.height = 2048;
+        this.directionalLight.shadow.camera.near = 0.5;
+        this.directionalLight.shadow.camera.far = 50;
+        this.directionalLight.shadow.camera.left = -10;
+        this.directionalLight.shadow.camera.right = 10;
+        this.directionalLight.shadow.camera.top = 10;
+        this.directionalLight.shadow.camera.bottom = -10;
+        
+        this.scene.add(this.directionalLight);
+        
+        // Add a point light
+        this.pointLight = new THREE.PointLight(0x00ffff, 1, 100);
+        this.pointLight.position.set(-5, 5, -5);
+        this.scene.add(this.pointLight);
+    }
+    
+    initGround() {
+        // Create ground plane
+        const groundGeometry = new THREE.PlaneGeometry(20, 20);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x999999,
+            roughness: 0.8,
+            metalness: 0.2,
+            side: THREE.DoubleSide
+        });
+        this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        this.ground.rotation.x = Math.PI / 2;
+        this.ground.position.y = 0;
+        this.ground.receiveShadow = true;
+        this.scene.add(this.ground);
+        
+        // Create grid helper
+        this.gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x888888);
+        this.scene.add(this.gridHelper);
+        
+        // Create axis helper (x=red, y=green, z=blue)
+        this.axesHelper = new THREE.AxesHelper(5);
+        this.scene.add(this.axesHelper);
+    }
+    
+    initHermiteCurves() {
+        // This method will just initialize the path variables but won't create paths
+        // The actual path creation will be handled by updateHermitePathToMatchRoof
+        
+        // Initialize variables for later use - but don't create actual paths yet
+        this.clawOperationHeight = 8; // Default height for claw operation
+        
+        // We won't create actual path points here anymore
+        // This prevents duplicate paths from appearing at the origin
+        
+        console.log("Initialized hermite curve variables (path will be created at claw machine position)");
+    }
+    
+    initSimulation() {
+        // Create chain simulation
+        this.chainSim = new ChainSim(this.scene);
+        
+        // Position the chain to start from the claw position
+        this.updateClawPosition(this.claw_position);
+    }
+    
+    updateClawPosition(position) {
+        // Add null check for position
+        if (!position) {
+            console.warn('updateClawPosition called with undefined position');
+            return;
+        }
+        
+        // Update the claw position
+        if (this.claw_position) {
+            this.claw_position.copy(position);
+        } else {
+            console.warn('claw_position is undefined');
+            this.claw_position = position.clone();
+        }
+        
+        // Apply inverse kinematics to move the claw parts
+        if (this.ikEnabled && this.ikJoints.length > 0) {
+            this.solveIK(position);
+        }
+        
+        // Update chain base position
+        if (this.chainSim && this.chainSim.chainSim && 
+            this.chainSim.chainSim.particles && 
+            this.chainSim.chainSim.particles.length > 0) {
+            
+            this.chainSim.chainSim.particles[0].pos.copy(position);
+            this.chainSim.chainSim.particles[0].updateMesh();
+            
+            // Update all springs
+            for (const spring of this.chainSim.chainSim.springs) {
+                spring.updateLine();
+            }
+        }
+    }
+    
+    initCameraControls() {
+        try {
+            // Create orbit controls
+            this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+            this.controls.enableDamping = true;
+            this.controls.dampingFactor = 0.25;
+            this.controls.screenSpacePanning = false;
+            this.controls.maxPolarAngle = Math.PI / 2;
+        } catch (error) {
+            console.error("Error initializing controls:", error);
+        }
+    }
+    
+    initClawMachine() {
+        console.log("Initializing claw machine...");
+        
+        // Machine properties
+        this.machineHeight = 10;
+        
+        // Initialize the bounding box properties but don't create the actual box yet
+        // The actual box will be created in updateMachineBounds with the correct position
+        this.machineBoundsInitialized = false;
+    }
+    
+    initToys() {
+        // Create some birds for the claw to pick up instead of toys
+        this.toys = [];
+        
+        // Define machine boundaries - will be adjusted after the model loads
+        // Using temporary dimensions to be replaced later
+        this.machineBounds = new THREE.Box3(
+            new THREE.Vector3(-2.5, 0, -2.5),  // min bounds
+            new THREE.Vector3(2.5, this.machineHeight - 4, 2.5)   // max bounds
+        );
+        
+        // Store the bounding box helper for later updates
+        this.boxHelper = new THREE.Box3Helper(this.machineBounds, 0xffff00);
+        this.boxHelper.visible = true; // Make it visible for debugging
+        this.scene.add(this.boxHelper);
+        
+        // Create colorful balls for the claw machine
+        this.createBirds();
+    }
+    
+    // Method to update the machine bounds to match the claw machine
+    updateMachineBounds(clawPosition) {
+        console.log("Updating machine bounds at position:", clawPosition);
+        
+        // Save reference to the claw machine position
+        this.clawMachinePosition = clawPosition.clone();
+        
+        // Create bounds around the provided claw machine position
+        const boundsSize = 1.9; // Size of the bounding box (half-width)
+        const boundsHeight = 6.3;  // Height of the bounding box
+        
+        // Remove any existing box helpers to prevent duplicates
+        if (this.boxHelper) {
+            this.scene.remove(this.boxHelper);
+            this.boxHelper = null;
+        }
+        
+        // Create a bounding box centered at the claw position
+        if (!this.machineBoundsCollider) {
+            // Create machine bounds collider
+            this.machineBoundsCollider = new BoundingBoxCollider(
+                new THREE.Vector3(
+                    clawPosition.x - boundsSize,
+                    clawPosition.y,
+                    clawPosition.z - boundsSize
+                ),
+                new THREE.Vector3(
+                    clawPosition.x + boundsSize,
+                    clawPosition.y + boundsHeight,
+                    clawPosition.z + boundsSize
+                ),
+                0xffff00 // Yellow color
+            );
+            
+            // Add helper to scene
+            this.scene.add(this.machineBoundsCollider.helper);
+        } else {
+            // Update existing bounds
+            this.machineBoundsCollider.setFromMinMax(
+                new THREE.Vector3(
+                    clawPosition.x - boundsSize,
+                    clawPosition.y,
+                    clawPosition.z - boundsSize
+                ),
+                new THREE.Vector3(
+                    clawPosition.x + boundsSize,
+                    clawPosition.y + boundsHeight,
+                    clawPosition.z + boundsSize
+                )
+            );
+            
+            // Make sure the helper is updated
+            this.machineBoundsCollider.updateHelper();
+        }
+        
+        // Get a reference to the Box3 for convenience
+        this.machineBounds = this.machineBoundsCollider.box;
+        
+        console.log(`Created machine bounds at position: (${clawPosition.x}, ${clawPosition.y}, ${clawPosition.z})`);
+        console.log(`Bounds size: ${boundsSize*2} x ${boundsHeight} x ${boundsSize*2}`);
+        
+        // Adjust the bottom of the bounding box to be higher
+        // Raise the bottom by 20% of the height for a better looking machine
+        this.machineBounds.min.y += boundsHeight * 0.2;
+        
+        // Mark as initialized to prevent duplicates
+        this.machineBoundsInitialized = true;
+        
+        // Create a glass hole bounding box (smaller box for the prize retrieval hole)
+        this.createGlassHoleBounds(clawPosition);
+        
+        // Reposition the birds/balls within bounds
+        this.repositionBirdsInBounds();
+        
+        // Add a visual marker at the claw position for debugging
+        if (!this.positionMarker) {
+            this.positionMarker = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+            );
+            this.scene.add(this.positionMarker);
+        }
+        this.positionMarker.position.copy(clawPosition);
+    }
+    
+    // Create a bounding box for the glass hole in the claw machine
+    createGlassHoleBounds(clawPosition) {
+        console.log("Creating glass hole bounds at position:", clawPosition);
+        
+        // Size of the glass hole - small square opening
+        const holeWidth = 1.35;   // Width of the hole
+        const holeHeight = 0.9;  // Height of the hole
+        const holeDepth = 1.35;   // Depth of the hole
+        const machineSize = 1.9; // Same as boundsSize from updateMachineBounds
+        
+        // Position the hole at the front of the machine (positive Z)
+        const holeY = clawPosition.y + 1.3; // Slightly above the base
+        
+        // Creating a direct THREE.Box3 for debugging first
+        const glassBox = new THREE.Box3(
+            new THREE.Vector3(
+                clawPosition.x + 1.15 - holeWidth/2,
+                holeY,
+                clawPosition.z -0.7 + machineSize - holeDepth/2
+            ),
+            new THREE.Vector3(
+                clawPosition.x + 1.15 + holeWidth/2,
+                holeY + holeHeight,
+                clawPosition.z -0.7+ machineSize + holeDepth/2
+            )
+        );
+        
+        // Create a direct box helper to ensure visibility
+        if (this.glassBoxHelper) {
+            this.scene.remove(this.glassBoxHelper);
+        }
+        
+        this.glassBoxHelper = new THREE.Box3Helper(glassBox, 0x00FFFF);
+        this.scene.add(this.glassBoxHelper);
+        
+        // Store the box for collision detection
+        this.glassHoleBounds = glassBox;
+        
+        // Initialize or reset the array to track balls in the glass hole
+        this.ballsInGlassHole = [];
+        
+        // Add a text display for number of balls in glass hole
+        this.updateGlassHoleText();
+        
+        console.log(`Glass hole box created at: 
+            Min: (${glassBox.min.x.toFixed(2)}, ${glassBox.min.y.toFixed(2)}, ${glassBox.min.z.toFixed(2)})
+            Max: (${glassBox.max.x.toFixed(2)}, ${glassBox.max.y.toFixed(2)}, ${glassBox.max.z.toFixed(2)})`);
+    }
+    
+    // Update the text display showing how many balls are in the glass hole
+    updateGlassHoleText() {
+        // Remove existing text if any
+        if (this.glassHoleText) {
+            this.scene.remove(this.glassHoleText);
+        }
+        
+        const ballCount = this.ballsInGlassHole ? this.ballsInGlassHole.length : 0;
+        
+        // Create canvas for text texture
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 128;
+        const context = canvas.getContext('2d');
+        context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.font = 'bold 36px Arial';
+        context.fillStyle = 'aqua';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(`Balls: ${ballCount}`, canvas.width / 2, canvas.height / 2);
+        
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+        
+        // Create sprite with the texture
+        const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(material);
+        
+        // Position the text above the glass hole
+        if (this.glassHoleBounds) {
+            const center = new THREE.Vector3();
+            this.glassHoleBounds.getCenter(center);
+            sprite.position.set(center.x, center.y + 1.5, center.z);
+            sprite.scale.set(2, 1, 1);
+        }
+        
+        this.glassHoleText = sprite;
+        this.scene.add(sprite);
+    }
+    
+    // Check if a ball is in the glass hole and track it
+    checkBallInGlassHole(ball) {
+        if (!this.glassHoleBounds || !ball) return false;
+        
+        // Initialize tracking array if needed
+        if (!this.ballsInGlassHole) {
+            this.ballsInGlassHole = [];
+        }
+        
+        const isInHole = this.glassHoleBounds.containsPoint(ball.position);
+        const wasAlreadyTracked = this.ballsInGlassHole.includes(ball);
+        
+        // If ball just entered the hole
+        if (isInHole && !wasAlreadyTracked) {
+            console.log(`Ball ${ball.name} entered the glass hole!`);
+            this.ballsInGlassHole.push(ball);
+            this.updateGlassHoleText();
+            return true;
+        }
+        // If ball just left the hole
+        else if (!isInHole && wasAlreadyTracked) {
+            console.log(`Ball ${ball.name} left the glass hole`);
+            const index = this.ballsInGlassHole.indexOf(ball);
+            if (index > -1) {
+                this.ballsInGlassHole.splice(index, 1);
+            }
+            this.updateGlassHoleText();
+        }
+        
+        return isInHole;
+    }
+    
+    // Method to reposition birds within the bounding box
+    repositionBirdsInBounds() {
+        if (!this.toys || !this.machineBounds) return;
+        
+        // Center position of the bounding box
+        const center = new THREE.Vector3();
+        this.machineBounds.getCenter(center);
+        
+        // Size of the bounding box
+        const size = new THREE.Vector3();
+        this.machineBounds.getSize(size);
+        
+        // Distribute birds within the bounds
+        this.toys.forEach((toy, index) => {
+            if (toy.userData.isBall) {
+                const radius = toy.userData.radius || 0.3;
+                
+                // Calculate offset from center based on index
+                const offsetX = (index % 2 === 0) ? -size.x * 0.3 : size.x * 0.3;
+                const offsetY = size.y * 0.2 + (index * 0.1); // Stagger heights
+                const offsetZ = ((index % 3) - 1) * size.z * 0.3;
+                
+                // Set new position
+                toy.position.set(
+                    center.x + offsetX,
+                    this.machineBounds.min.y + offsetY,
+                    center.z + offsetZ
+                );
+                
+                // Update bounding sphere
+                if (toy.userData.boundingSphere) {
+                    toy.userData.boundingSphere.center.copy(toy.position);
+                }
+                
+                console.log(`Repositioned ball ${index} to (${toy.position.x}, ${toy.position.y}, ${toy.position.z})`);
+            }
+        });
+    }
+    
+    // Create colorful balls for the claw machine
+    createBirds() {
+        // Ball positions - scattered inside the machine
+        const ballPositions = [
+            [0, 1.5, 0],      // Center
+            [1.0, 1.0, 1.0],   // Front right
+            [-1.0, 1.2, 1.0],  // Front left
+            [0.8, 0.9, -0.8],  // Back right
+            [-0.8, 1.1, -0.8], // Back left
+            [0.3, 1.3, 0.7],   // Front center-right
+            [-0.3, 1.4, -0.7], // Back center-left
+            [0.5, 0.8, 0.2]    // Middle right
+        ];
+        
+        // Vibrant colors for the balls
+        const ballColors = [
+            0xFF0000, // Bright red
+            0x00FF00, // Bright green
+            0x0000FF, // Bright blue
+            0xFFFF00, // Bright yellow
+            0xFF00FF, // Bright magenta
+            0x00FFFF, // Cyan
+            0xFF8000, // Orange
+            0x8000FF  // Purple
+        ];
+        
+        // Ball names
+        const ballNames = [
+            "RedBall",
+            "GreenBall", 
+            "BlueBall",
+            "YellowBall",
+            "MagentaBall",
+            "CyanBall",
+            "OrangeBall",
+            "PurpleBall"
+        ];
+        
+        // Create each ball with a shiny material
+        for (let i = 0; i < ballPositions.length; i++) {
+            this.createBall(
+                ballPositions[i],
+                ballColors[i],
+                ballNames[i],
+                0.35 + (i * 0.03)  // Slightly different sizes
+            );
+        }
+    }
+    
+    // Create an individual ball with specific position, color, and name
+    createBall(position, color, name, size = 0.4) {
+        // Create a shiny ball
+        const ballGeometry = new THREE.SphereGeometry(size, 32, 32);
+        const ballMaterial = new THREE.MeshPhongMaterial({ 
+            color: color,
+            specular: 0xFFFFFF,
+            shininess: 100,
+            emissive: new THREE.Color(color).multiplyScalar(0.2)
+        });
+        
+        const ball = new THREE.Mesh(ballGeometry, ballMaterial);
+        
+        // Position the ball - relative to claw machine position if available
+        const [x, y, z] = position;
+        
+        // If we have a clawMachinePosition, use it as the base
+        if (this.clawMachinePosition) {
+            ball.position.set(
+                this.clawMachinePosition.x + x,
+                this.clawMachinePosition.y + y,
+                this.clawMachinePosition.z + z
+            );
+        } else {
+            ball.position.set(x, y, z);
+        }
+        
+        ball.name = name;
+        
+        // Add a bounding sphere for collision detection
+        ball.userData.boundingSphere = new THREE.Sphere(
+            ball.position.clone(),
+            size * 1.05  // Slightly larger than the visual radius
+        );
+        
+        // Add physics properties
+        ball.userData.velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.1,  // Small random initial velocity
+            0,
+// three-claw-scene.js - Main scene file for Three.js version
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ChainSim, BallPhysics, BoundingBoxCollider } from './three-physics.js';
+import { HermiteCurve, HermitePath } from './three-hermite.js';
+import { CatmullRomPath, catmullRomTangents } from './three-catmull-rom.js';
+import { Matrix4, Quaternion, Euler } from 'three';
+
+// Constants for the inverse kinematics
+const IK_ITERATIONS = 10;
+const IK_TOLERANCE = 0.01;
+const IK_DAMPING = 0.5;
+
+export class ClawScene {
+    constructor() {
+        // Claw movement properties - initialize before methods that might use them
+        this.claw_moving = false;
+        this.claw_position = new THREE.Vector3(0, 6, 0);
+        this.claw_target = new THREE.Vector3(0, 6, 0);
+        this.claw_movement_t = 0;
+        this.claw_movement_speed = 0.01;
+        
+        // Clock for animation timing
+        this.clock = new THREE.Clock();
+        this.clock.start();
+        
+        // Initialize scene and components
+        this.initScene();
+        this.initLights();
+        this.initGround();
+        this.initHermiteCurves();
+        this.initCameraControls();
+        this.initClawMachine();
+        this.initToys();
+        this.initInverseKinematics();
+        this.initSimulation();
+        
+        // Initialize physics
+        this.ballPhysics = new BallPhysics();
+        
+        // Store reference to the claw machine position
+        this.clawMachinePosition = new THREE.Vector3(0, 0, 0);
+        
+        console.log("ClawScene initialized");
+    }
+    
+    initScene() {
+        // Create a scene and set a light blue background
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87CEEB); // Light blue / sky blue
+        
+        // Create a camera
+        this.camera = new THREE.PerspectiveCamera(
+            50, 
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        
+        // Set initial camera position
+        this.camera.position.set(0, 10, 20);
+        
+        // Create a WebGL renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Add renderer to the document
+        document.body.appendChild(this.renderer.domElement);
+        
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
+        
+        // Add directional light (sun-like)
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.near = 0.1;
+        directionalLight.shadow.camera.far = 500;
+        directionalLight.shadow.camera.right = 30;
+        directionalLight.shadow.camera.left = -30;
+        directionalLight.shadow.camera.top = 30;
+        directionalLight.shadow.camera.bottom = -30;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        this.scene.add(directionalLight);
+        
+        // Add grid for reference
+        const grid = new THREE.GridHelper(50, 50, 0x808080, 0x808080);
+        grid.material.opacity = 0.2;
+        grid.material.transparent = true;
+        this.scene.add(grid);
+        
+        // Store reference to the claw position
+        this.claw_position = new THREE.Vector3(0, 5, 0);
+        
+        // Create an array to hold toys (birds)
+        this.toys = [];
+        
+        // Initialize basic physics simulation parameters
+        this.gravity = new THREE.Vector3(0, -9.8, 0); // Earth gravity
+        this.isGravityEnabled = true;
+        this.lastTime = performance.now() / 1000; // Convert to seconds
+    }
+    
+    initLights() {
+        // Add ambient light
+        this.ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+        this.scene.add(this.ambientLight);
+        
+        // Add directional light (sun-like)
+        this.directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        this.directionalLight.position.set(5, 10, 7.5);
+        this.directionalLight.castShadow = true;
+        
+        // Configure shadow properties
+        this.directionalLight.shadow.mapSize.width = 2048;
+        this.directionalLight.shadow.mapSize.height = 2048;
+        this.directionalLight.shadow.camera.near = 0.5;
+        this.directionalLight.shadow.camera.far = 50;
+        this.directionalLight.shadow.camera.left = -10;
+        this.directionalLight.shadow.camera.right = 10;
+        this.directionalLight.shadow.camera.top = 10;
+        this.directionalLight.shadow.camera.bottom = -10;
+        
+        this.scene.add(this.directionalLight);
+        
+        // Add a point light
+        this.pointLight = new THREE.PointLight(0x00ffff, 1, 100);
+        this.pointLight.position.set(-5, 5, -5);
+        this.scene.add(this.pointLight);
+    }
+    
+    initGround() {
+        // Create ground plane
+        const groundGeometry = new THREE.PlaneGeometry(20, 20);

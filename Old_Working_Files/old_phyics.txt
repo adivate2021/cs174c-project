@@ -1,0 +1,371 @@
+// three-physics.js - Physics simulation module for Three.js version
+import * as THREE from 'three';
+import { vec3, toThreeVec3, add, subtract, scale, length, normalize } from './three-math.js';
+
+// Particle class - adapted for Three.js
+export class Particle {
+    constructor() {
+        this.pos = new THREE.Vector3(0, 0, 0);
+        this.prev_pos = new THREE.Vector3(0, 0, 0);
+        this.vel = new THREE.Vector3(0, 0, 0);
+        this.acc = new THREE.Vector3(0, 0, 0);
+        this.force = new THREE.Vector3(0, 0, 0);
+        this.ext_force = new THREE.Vector3(0, 0, 0);
+        this.mass = 1.0;
+        this.valid = true;
+        
+        // Reference to the Three.js mesh that represents this particle
+        this.mesh = null;
+    }
+    
+    // Update the Three.js mesh position
+    updateMesh() {
+        if (this.mesh) {
+            this.mesh.position.copy(this.pos);
+        }
+    }
+}
+
+// Spring class - adapted for Three.js
+export class Spring {
+    constructor() {
+        this.particle_1 = null;
+        this.particle_2 = null;
+        this.ks = 1.0;  // spring constant
+        this.kd = 0.1;  // damping constant
+        this.rest_length = 1.0;
+        this.valid = true;
+        
+        // Reference to the Three.js line that represents this spring
+        this.line = null;
+    }
+    
+    // Update the Three.js line geometry to match particle positions
+    updateLine() {
+        if (this.line && this.particle_1 && this.particle_2) {
+            const positions = this.line.geometry.attributes.position;
+            positions.setXYZ(0, this.particle_1.pos.x, this.particle_1.pos.y, this.particle_1.pos.z);
+            positions.setXYZ(1, this.particle_2.pos.x, this.particle_2.pos.y, this.particle_2.pos.z);
+            positions.needsUpdate = true;
+        }
+    }
+}
+
+// Simulation class - adapted for Three.js
+export class Simulation {
+    constructor() {
+        this.particles = [];
+        this.springs = [];
+        this.g_acc = new THREE.Vector3(0, -9.8, 0);  // gravity
+        this.ground_y = 0;  // y position of the ground
+        this.ground_ks = 1000;  // ground spring constant
+        this.ground_kd = 10;  // ground damping constant
+        this.dt = 0.01;  // simulation time step
+        this.gravity_enabled = true;
+    }
+    
+    // Computes forces for all particles and springs
+    computeForces() {
+        // Reset forces
+        for (const p of this.particles) {
+            if (!p.valid) continue;
+            p.force.set(0, 0, 0);
+            
+            // Add external force
+            p.force.add(p.ext_force);
+            
+            // Add gravity if enabled
+            if (this.gravity_enabled) {
+                p.force.add(this.g_acc.clone().multiplyScalar(p.mass));
+            }
+            
+            // Ground collision
+            if (p.pos.y < this.ground_y) {
+                // Spring force
+                const depth = this.ground_y - p.pos.y;
+                const spring_force = new THREE.Vector3(0, 1, 0).multiplyScalar(depth * this.ground_ks);
+                p.force.add(spring_force);
+                
+                // Damping force
+                if (p.vel.y < 0) {
+                    const damping_force = new THREE.Vector3(0, 1, 0).multiplyScalar(-p.vel.y * this.ground_kd);
+                    p.force.add(damping_force);
+                }
+            }
+        }
+        
+        // Compute spring forces
+        for (const s of this.springs) {
+            if (!s.valid || !s.particle_1 || !s.particle_2) continue;
+            
+            const p1 = s.particle_1;
+            const p2 = s.particle_2;
+            
+            if (!p1.valid || !p2.valid) continue;
+            
+            // Compute spring vector and length
+            const spring_vec = p2.pos.clone().sub(p1.pos);
+            const spring_len = spring_vec.length();
+            
+            if (spring_len === 0) continue;  // Avoid division by zero
+            
+            // Compute spring direction
+            const spring_dir = spring_vec.clone().normalize();
+            
+            // Compute relative velocity
+            const rel_vel = p2.vel.clone().sub(p1.vel);
+            
+            // Compute spring force magnitude
+            const spring_force_mag = s.ks * (spring_len - s.rest_length);
+            
+            // Compute damping force magnitude
+            const damping_force_mag = s.kd * rel_vel.dot(spring_dir);
+            
+            // Compute total force
+            const total_force_mag = spring_force_mag + damping_force_mag;
+            const force = spring_dir.multiplyScalar(total_force_mag);
+            
+            // Apply forces to particles
+            p1.force.add(force);
+            p2.force.sub(force);
+        }
+    }
+    
+    // Updates positions and velocities of all particles
+    integrate() {
+        for (const p of this.particles) {
+            if (!p.valid) continue;
+            
+            // Store previous position
+            p.prev_pos.copy(p.pos);
+            
+            // Compute acceleration
+            p.acc.copy(p.force).divideScalar(p.mass);
+            
+            // Update velocity (semi-implicit Euler integration)
+            p.vel.add(p.acc.clone().multiplyScalar(this.dt));
+            
+            // Update position
+            p.pos.add(p.vel.clone().multiplyScalar(this.dt));
+            
+            // Update the Three.js mesh position
+            p.updateMesh();
+        }
+        
+        // Update spring line representations
+        for (const s of this.springs) {
+            if (s.valid) {
+                s.updateLine();
+            }
+        }
+    }
+    
+    // Simulate one time step
+    step() {
+        this.computeForces();
+        this.integrate();
+    }
+    
+    // Toggle gravity on/off
+    toggleGravity() {
+        this.gravity_enabled = !this.gravity_enabled;
+    }
+}
+
+// Chain simulation - adapted for Three.js
+export class ChainSim {
+    constructor(scene) {
+        this.scene = scene;
+        this.chainSim = new Simulation();
+        this.sphereGeometry = new THREE.SphereGeometry(0.2, 32, 32);
+        this.sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x44aaff });
+        this.lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+        
+        this.setupChain();
+    }
+    
+    setupChain() {
+        // Create particles
+        for (let i = 0; i < 3; i++) {
+            const particle = new Particle();
+            particle.mass = 1;
+            particle.pos.set(0, 5 - (0.5 * i), 0);
+            particle.vel.set(0, 0, 0);
+            particle.valid = true;
+            
+            // Create mesh for this particle
+            particle.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
+            particle.mesh.position.copy(particle.pos);
+            this.scene.add(particle.mesh);
+            
+            this.chainSim.particles.push(particle);
+        }
+        
+        // Create springs between particles
+        for (let i = 0; i < 2; i++) {
+            const spring = new Spring();
+            spring.particle_1 = this.chainSim.particles[i];
+            spring.particle_2 = this.chainSim.particles[i+1];
+            spring.ks = 500;
+            spring.kd = 10;
+            spring.rest_length = 0.5;
+            spring.valid = true;
+            
+            // Create a line to visualize the spring
+            const lineGeometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(6);  // 2 points * 3 coordinates
+            
+            // Set initial positions
+            positions[0] = spring.particle_1.pos.x;
+            positions[1] = spring.particle_1.pos.y;
+            positions[2] = spring.particle_1.pos.z;
+            positions[3] = spring.particle_2.pos.x;
+            positions[4] = spring.particle_2.pos.y;
+            positions[5] = spring.particle_2.pos.z;
+            
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            spring.line = new THREE.Line(lineGeometry, this.lineMaterial);
+            this.scene.add(spring.line);
+            
+            this.chainSim.springs.push(spring);
+        }
+        
+        // Create additional particles for the claw
+        const particle3 = new Particle();
+        particle3.mass = 1;
+        particle3.pos.set(1.5, 3, 0);
+        particle3.vel.set(0, 0, 0);
+        particle3.valid = true;
+        particle3.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
+        particle3.mesh.position.copy(particle3.pos);
+        this.scene.add(particle3.mesh);
+        this.chainSim.particles.push(particle3);
+        
+        const particle4 = new Particle();
+        particle4.mass = 1;
+        particle4.pos.set(-0.75, 3, 1.3);
+        particle4.vel.set(0, 0, 0);
+// three-physics.js - Physics simulation module for Three.js version
+import * as THREE from 'three';
+import { vec3, toThreeVec3, add, subtract, scale, length, normalize } from './three-math.js';
+
+// Particle class - adapted for Three.js
+export class Particle {
+    constructor() {
+        this.pos = new THREE.Vector3(0, 0, 0);
+        this.prev_pos = new THREE.Vector3(0, 0, 0);
+        this.vel = new THREE.Vector3(0, 0, 0);
+        this.acc = new THREE.Vector3(0, 0, 0);
+        this.force = new THREE.Vector3(0, 0, 0);
+        this.ext_force = new THREE.Vector3(0, 0, 0);
+        this.mass = 1.0;
+        this.valid = true;
+        
+        // Reference to the Three.js mesh that represents this particle
+        this.mesh = null;
+    }
+    
+    // Update the Three.js mesh position
+    updateMesh() {
+        if (this.mesh) {
+            this.mesh.position.copy(this.pos);
+        }
+    }
+}
+
+// Spring class - adapted for Three.js
+export class Spring {
+    constructor() {
+        this.particle_1 = null;
+        this.particle_2 = null;
+        this.ks = 1.0;  // spring constant
+        this.kd = 0.1;  // damping constant
+        this.rest_length = 1.0;
+        this.valid = true;
+        
+        // Reference to the Three.js line that represents this spring
+        this.line = null;
+    }
+    
+    // Update the Three.js line geometry to match particle positions
+    updateLine() {
+        if (this.line && this.particle_1 && this.particle_2) {
+            const positions = this.line.geometry.attributes.position;
+            positions.setXYZ(0, this.particle_1.pos.x, this.particle_1.pos.y, this.particle_1.pos.z);
+            positions.setXYZ(1, this.particle_2.pos.x, this.particle_2.pos.y, this.particle_2.pos.z);
+            positions.needsUpdate = true;
+        }
+    }
+}
+
+// Simulation class - adapted for Three.js
+export class Simulation {
+    constructor() {
+        this.particles = [];
+        this.springs = [];
+        this.g_acc = new THREE.Vector3(0, -9.8, 0);  // gravity
+        this.ground_y = 0;  // y position of the ground
+        this.ground_ks = 1000;  // ground spring constant
+        this.ground_kd = 10;  // ground damping constant
+        this.dt = 0.01;  // simulation time step
+        this.gravity_enabled = true;
+    }
+    
+    // Computes forces for all particles and springs
+    computeForces() {
+        // Reset forces
+        for (const p of this.particles) {
+            if (!p.valid) continue;
+            p.force.set(0, 0, 0);
+            
+            // Add external force
+            p.force.add(p.ext_force);
+            
+            // Add gravity if enabled
+            if (this.gravity_enabled) {
+                p.force.add(this.g_acc.clone().multiplyScalar(p.mass));
+            }
+            
+            // Ground collision
+            if (p.pos.y < this.ground_y) {
+                // Spring force
+                const depth = this.ground_y - p.pos.y;
+                const spring_force = new THREE.Vector3(0, 1, 0).multiplyScalar(depth * this.ground_ks);
+                p.force.add(spring_force);
+                
+                // Damping force
+                if (p.vel.y < 0) {
+                    const damping_force = new THREE.Vector3(0, 1, 0).multiplyScalar(-p.vel.y * this.ground_kd);
+                    p.force.add(damping_force);
+                }
+            }
+        }
+        
+        // Compute spring forces
+        for (const s of this.springs) {
+            if (!s.valid || !s.particle_1 || !s.particle_2) continue;
+            
+            const p1 = s.particle_1;
+            const p2 = s.particle_2;
+            
+            if (!p1.valid || !p2.valid) continue;
+            
+            // Compute spring vector and length
+            const spring_vec = p2.pos.clone().sub(p1.pos);
+            const spring_len = spring_vec.length();
+            
+            if (spring_len === 0) continue;  // Avoid division by zero
+            
+            // Compute spring direction
+            const spring_dir = spring_vec.clone().normalize();
+            
+            // Compute relative velocity
+            const rel_vel = p2.vel.clone().sub(p1.vel);
+            
+            // Compute spring force magnitude
+            const spring_force_mag = s.ks * (spring_len - s.rest_length);
+            
+            // Compute damping force magnitude
+            const damping_force_mag = s.kd * rel_vel.dot(spring_dir);
+            
+            // Compute total force
