@@ -101,6 +101,7 @@ class Simulation {
       // add ground collision detection and damping
       // secret_ground_forces(this, p);
       this.update_ground_forces(p);
+      this.check_collisions_with_objects(p);
     }
     for (const s of this.springs) {
       s.update();
@@ -110,8 +111,8 @@ class Simulation {
     }
   }
   update_ground_forces(p) {
-    if (p.pos[1] <= 0) {
-      let ground_point = vec3(0, 0, 0);
+    if (p.pos[1] <= 0.5) {
+      let ground_point = vec3(0, 0.2, 0);
       let normal_vector = vec3(0, 1, 0);
       let first_term = ground_point.minus(p.pos);
       first_term = first_term.dot(normal_vector);
@@ -123,6 +124,18 @@ class Simulation {
       let normal_force = first_term.minus(second_term);
       p.ext_force.add_by(normal_force);
       // p.ext_force = normal_force;
+    }
+  }
+  check_collisions_with_objects(p) {
+    for (const p2 of this.particles) {
+      if (p2 !== p) {
+        let diff_vector = p2.pos.minus(p.pos);
+        let distance = diff_vector.norm();
+        if (distance <= 0.2) {
+          p.vel.scale_by(-1);
+          p2.vel.scale_by(-1);
+        }
+      }
     }
   }
   draw(webgl_manager, uniforms, shapes, materials) {

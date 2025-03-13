@@ -10,6 +10,7 @@ const { vec3, vec4, color, Mat4, Shape, Material, Shader, Texture, Component } =
 class Chain_Sim {
   constructor() {
     this.chainSim = new Simulation();
+    // Chain
     for (let i = 0; i < 3; i++) {
       this.chainSim.particles.push(new Particle());
       this.chainSim.particles[i].mass = 1;
@@ -26,6 +27,55 @@ class Chain_Sim {
       this.chainSim.springs[i].rest_length = 0.5;
       this.chainSim.springs[i].valid = true;
     }
+    // Objects on the ground
+    // let box_transform = Mat4.translation(5,0.2,0).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
+    // box_transform = Mat4.translation(0,0.2,5).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
+    // box_transform = Mat4.translation(5,0.2,5).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
+    // let toy_transform = Mat4.translation(3,0.2,3).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
+    // toy_transform = Mat4.translation(1,0.2,2).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
+    // toy_transform = Mat4.translation(2,0.2,4).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[3].mass = 1;
+    this.chainSim.particles[3].pos = vec3(5, 0.2, 0);
+    this.chainSim.particles[3].vel = vec3(0, 0, 0);
+    this.chainSim.particles[3].valid = true;
+
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[4].mass = 1;
+    this.chainSim.particles[4].pos = vec3(0, 0.2, 5);
+    this.chainSim.particles[4].vel = vec3(0, 0, 0);
+    this.chainSim.particles[4].valid = true;
+
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[5].mass = 1;
+    this.chainSim.particles[5].pos = vec3(5, 0.2, 5);
+    this.chainSim.particles[5].vel = vec3(0, 0, 0);
+    this.chainSim.particles[5].valid = true;
+
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[6].mass = 1;
+    this.chainSim.particles[6].pos = vec3(3, 0.2, 3);
+    this.chainSim.particles[6].vel = vec3(0, 0, 0);
+    this.chainSim.particles[6].valid = true;
+
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[7].mass = 1;
+    this.chainSim.particles[7].pos = vec3(2, 0.2, 4);
+    this.chainSim.particles[7].vel = vec3(0, 0, 0);
+    this.chainSim.particles[7].valid = true;
+
+    this.chainSim.particles.push(new Particle());
+    this.chainSim.particles[8].mass = 1;
+    this.chainSim.particles[8].pos = vec3(8, 0.2, 4);
+    this.chainSim.particles[8].vel = vec3(-1, 0, 0);
+    this.chainSim.particles[8].valid = true;
+
     this.chainSim.g_acc = vec3(0, -9.8, 0);
     this.chainSim.ground_ks = 5000;
     this.chainSim.ground_kd = 10;
@@ -128,6 +178,7 @@ const Part_three_chain_base = defs.Part_three_chain_base =
         // this.curve = new Curve_Shape(null, 100);
         this.curves = [];
         this.update_scene();
+        this.lowerButtonPress = true;
       }
 
       render_animation( caller )
@@ -280,20 +331,30 @@ export class Part_three_chain extends Part_three_chain_base
     let y = f1_val * y0 + f2_val * y1 + f3_val * sy0 * tangentScalingFactor + f4_val * sy1 * tangentScalingFactor;
     let z = f1_val * z0 + f2_val * z1 + f3_val * sz0 * tangentScalingFactor + f4_val * sz1 * tangentScalingFactor;
     this.chainSimulation.chainSim.particles[0].pos = vec3(x, y, z);
+    // if (this.lowerButtonPress == true) {
+    //   console.log(this.chainSimulation.chainSim.particles[2].pos[1]);
+    //   if (this.chainSimulation.chainSim.particles[2].pos[1] > 0.5) {
+    //     this.chainSimulation.chainSim.particles[2].pos = vec3(this.chainSimulation.chainSim.particles[2].pos[0], this.chainSimulation.chainSim.particles[2].pos[1] - (this.t * 0.05), this.chainSimulation.chainSim.particles[2].pos[2]);
+    //   }
+    //   else {
+    //     console.log("lower button done");
+    //     this.lowerButtonPress = false;
+    //   }
+    // }
     this.t_spline += 0.005;
     this.chainSimulation.chainSim.draw(caller, this.uniforms, this.shapes, this.materials);
-    let box_transform = Mat4.translation(5,0.2,0).times(Mat4.scale(0.2,0.2,0.2))
-    this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
-    box_transform = Mat4.translation(0,0.2,5).times(Mat4.scale(0.2,0.2,0.2))
-    this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
-    box_transform = Mat4.translation(5,0.2,5).times(Mat4.scale(0.2,0.2,0.2))
-    this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
-    let toy_transform = Mat4.translation(3,0.2,3).times(Mat4.scale(0.2,0.2,0.2))
-    this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
-    toy_transform = Mat4.translation(1,0.2,2).times(Mat4.scale(0.2,0.2,0.2))
-    this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
-    toy_transform = Mat4.translation(2,0.2,4).times(Mat4.scale(0.2,0.2,0.2))
-    this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
+    // let box_transform = Mat4.translation(5,0.2,0).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
+    // box_transform = Mat4.translation(0,0.2,5).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
+    // box_transform = Mat4.translation(5,0.2,5).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.box.draw(caller, this.uniforms,box_transform, {...this.materials.metal, color: blue})
+    // let toy_transform = Mat4.translation(3,0.2,3).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
+    // toy_transform = Mat4.translation(1,0.2,2).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
+    // toy_transform = Mat4.translation(2,0.2,4).times(Mat4.scale(0.2,0.2,0.2))
+    // this.shapes.ball.draw(caller, this.uniforms,toy_transform, {...this.materials.metal, color: blue})
   }
   f1(t) {
     return (2 * t**3) - (3 * t**2) + 1;
