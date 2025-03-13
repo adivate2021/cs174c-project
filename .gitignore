@@ -6,3 +6,4 @@
 *.bat
 *.command
 .vscode/*
+/node_modules
