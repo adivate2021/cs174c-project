@@ -136,6 +136,8 @@ export const Part_three_chain_base =
     // exposes only the display() method, which actually places and draws the shapes,
     // isolating that code so it can be experimented with on its own.
     init() {
+      this.my_t = 0
+
       console.log("init");
 
       // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
@@ -266,6 +268,7 @@ export const Part_three_chain_base =
   });
 
 export class Claw_Scene extends Part_three_chain_base {
+
   // **Part_one_hermite** is a Scene object that can be added to any display canvas.
   // This particular scene is broken up into two pieces for easier understanding.
   // See the other piece, My_Demo_Base, if you need to see the setup code.
@@ -484,6 +487,8 @@ export class Claw_Scene extends Part_three_chain_base {
     });
     this.new_line();
     this.key_triggered_button("OPEN/CLOSE", ["o"], function () {});
+    this.new_line();
+    this.key_triggered_button("DEBUG", ["e"], this.debug_claw);
     /*this.new_line();
     this.key_triggered_button( "Relocate", [ "r" ], function() {
       let text = document.getElementById("input").value;
@@ -500,6 +505,12 @@ export class Claw_Scene extends Part_three_chain_base {
       }
     } );
      */
+  }
+
+  debug_claw() {
+    this.human.update(this.my_t)
+    this.my_t += 0.01
+    
   }
 
   parse_commands() {
