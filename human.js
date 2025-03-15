@@ -8,12 +8,16 @@ const shapes = {
 };
 
 export const Articulated_Human = class Articulated_Human {
-	constructor() {
+	constructor(scale) {
+		this.scale = scale
 		const sphere_shape = shapes.sphere;
-    const middle_knuckle_bend = 1.1
+    	const middle_knuckle_bend = 0
+
+		this.end_effector_offset = 0.4
+		this.end_effector_node_scale = 0.1;
 		// Root position of the claw
 		let claw_transform = Mat4.translation(0, 0, 0); // Root at (0, 0, 0)
-		const claw_scale = 0.1;
+		const claw_scale = scale * 0.1 ;
 		this.claw_node = new Node(
 			"claw",
 			sphere_shape,
@@ -25,17 +29,18 @@ export const Articulated_Human = class Articulated_Human {
 
 		let displacement = 0.05;
 		const finger_positions = [
-      Mat4.translation(displacement, 0, 0), // East
-			Mat4.translation(0, 0, -1 *displacement), // South
-			Mat4.translation(-1 * displacement, 0, 0), // West
-			Mat4.translation(0, 0, displacement), // North
+      	Mat4.translation(scale * displacement, 0, 0), // East
+			Mat4.translation(0, 0, -scale *displacement), // South
+			Mat4.translation(-scale * displacement, 0, 0), // West
+			Mat4.translation(0, 0, scale *  displacement), // North
 		];
 
 		this.fingers = [];
+		this.end_effectors = []
 
 		// #region Finger 1
-		let knuckle_transform = Mat4.scale(0.25, 0.05, 0.05);
-		knuckle_transform.pre_multiply(Mat4.translation(0.3, 0, 0));
+		let knuckle_transform = Mat4.scale(scale * 0.25, scale * 0.05, scale * 0.05);
+		knuckle_transform.pre_multiply(Mat4.translation(scale *0.3, 0, 0));
 		let upper_finger = new Node(
 			`finger${0}_knuckle`,
 			sphere_shape,
@@ -53,18 +58,17 @@ export const Articulated_Human = class Articulated_Human {
 
 		//   Lower finger (middle joint) – reworked to incorporate the offset into the node transform
 		// First rotate, then translate, then scale the lower finger
-    let lower_finger_transform = Mat4.scale(0.2, 0.05, 0.05)
-    lower_finger_transform.pre_multiply(Mat4.translation(0.2, 0, 0))
-    lower_finger_transform.pre_multiply(Mat4.rotation(middle_knuckle_bend, 0, 0, 1))
-    // lower_finger_transform.pre_multiply(finger_rotations[0])
+		let lower_finger_transform = Mat4.scale(this.scale * 0.2, this.scale * 0.05, this.scale * 0.05)
+		lower_finger_transform.pre_multiply(Mat4.translation(this.scale * 0.2, 0, 0))
+		lower_finger_transform.pre_multiply(Mat4.rotation(middle_knuckle_bend, 0, 0, 1))
+    	// lower_finger_transform.pre_multiply(finger_rotations[0])
 		let lower_finger = new Node(
 			`finger${0}_middle`,
 			sphere_shape,
       lower_finger_transform
 		);
 
-		// Use an identity location matrix so that the lower finger's transform is applied in the parent's (rotated) frame.
-		let middle_knuckle_transform = Mat4.translation(0.55, 0, 0);
+		let middle_knuckle_transform = Mat4.translation(this.scale * 0.55, 0, 0);
 		let middle_knuckle = new Arc(
 			`finger${0}_middle_knuckle`,
 			upper_finger, // Attach to the upper finger
@@ -76,12 +80,29 @@ export const Articulated_Human = class Articulated_Human {
 
 		this.fingers.push({ knuckle: upper_knuckle });
 
+		
+		let fingertip_node_transform = Mat4.scale(0.1, 0.1, 0.1).pre_multiply(Mat4.translation(this.end_effector_offset * this.scale, 0, 0))
+		let fingertip_node = new Node(
+			'fingertip_0', sphere_shape, fingertip_node_transform
+		)
+
+		let fingertip_transform_1 = Mat4.translation(this.scale * 0.1, 0, 0)
+		let fingertip_1 = new Arc(
+			"finger0_tip",
+			lower_finger,
+			fingertip_node,
+			fingertip_transform_1
+		)
+		lower_finger.children_arcs.push(fingertip_1)
+
+    	this.end_effector_1 = new End_Effector("end_1", fingertip_1, fingertip_transform_1)
+
     // #endregion
 
 
     // #region Finger 2
-		let knuckle_transform2 = Mat4.scale(0.05, 0.05, 0.25);
-		knuckle_transform2.pre_multiply(Mat4.translation(0, 0, -0.3));
+		let knuckle_transform2 = Mat4.scale(this.scale * 0.05, this.scale * 0.05, this.scale * 0.25);
+		knuckle_transform2.pre_multiply(Mat4.translation(0, 0, this.scale * -0.3));
 		let upper_finger2 = new Node(
 			`finger${1}_knuckle`,
 			sphere_shape,
@@ -99,9 +120,9 @@ export const Articulated_Human = class Articulated_Human {
 
 		//   Lower finger (middle joint) – reworked to incorporate the offset into the node transform
 		// First rotate, then translate, then scale the lower finger
-    let lower_finger_transform2 = Mat4.scale(0.05, 0.05, -0.2)
-    lower_finger_transform2.pre_multiply(Mat4.translation(0, 0, -0.2))
-    lower_finger_transform2.pre_multiply(Mat4.rotation(middle_knuckle_bend, 1, 0, 0))
+		let lower_finger_transform2 = Mat4.scale(this.scale * 0.05, this.scale * 0.05, this.scale * -0.2)
+		lower_finger_transform2.pre_multiply(Mat4.translation(0, 0, this.scale * -0.2))
+		lower_finger_transform2.pre_multiply(Mat4.rotation(middle_knuckle_bend, 1, 0, 0))
 
     // lower_finger_transform2.pre_multiply(finger_rotations[0])
 		let lower_finger2 = new Node(
@@ -111,7 +132,7 @@ export const Articulated_Human = class Articulated_Human {
 		);
 
 		// Use an identity location matrix so that the lower finger's transform is applied in the parent's (rotated) frame.
-		let middle_knuckle_transform2 = Mat4.translation(0, 0, -0.55);
+		let middle_knuckle_transform2 = Mat4.translation(0, 0, this.scale * -0.55);
 		let middle_knuckle2 = new Arc(
 			`finger${1}_middle_knuckle2`,
 			upper_finger2, // Attach to the upper finger
@@ -122,12 +143,28 @@ export const Articulated_Human = class Articulated_Human {
 		middle_knuckle2.set_dof(false, false, false, true, false, false); // Enable rotation
 
 		this.fingers.push({ knuckle: upper_knuckle2 });
+		this.end_effector_2 = new End_Effector("end_2", lower_finger2, Mat4.translation(0, 0, - 1 * this.scale * 0.1))
+		
+		let fingertip_node_transform_2 = Mat4.scale(0.1, 0.1, 0.1).pre_multiply(Mat4.translation(0, 0, -1 * this.scale * this.end_effector_offset))
 
+		let fingertip_node2 = new Node(
+			'fingertip_1', sphere_shape, fingertip_node_transform_2
+		)
+		let fingertip_transform_2 = Mat4.translation(0, 0, -1 * this.scale * 0.1)
+		let fingertip_2 = new Arc(
+			"finger2_tip",
+			lower_finger,
+			fingertip_node2,
+			fingertip_transform_2
+		)
+		lower_finger2.children_arcs.push(fingertip_2)
+
+    	this.end_effector_2 = new End_Effector("end_2", fingertip_2, fingertip_transform_2)
     // #endregion
 
     // #region Finger 3
-		let knuckle_transform_3 = Mat4.scale(0.25, 0.05, 0.05);
-		knuckle_transform_3.pre_multiply(Mat4.translation(-0.3, 0, 0));
+		let knuckle_transform_3 = Mat4.scale(scale *0.25, scale *0.05, scale *0.05);
+		knuckle_transform_3.pre_multiply(Mat4.translation(scale *-0.3, 0, 0));
 		let upper_finger_3 = new Node(
 			`finger${2}_knuckle`,
 			sphere_shape,
@@ -145,9 +182,9 @@ export const Articulated_Human = class Articulated_Human {
 
 		//   Lower finger (middle joint) – reworked to incorporate the offset into the node transform
 		// First rotate, then translate, then scale the lower finger
-    let lower_finger_transform_3 = Mat4.scale(0.2, 0.05, 0.05)
-    lower_finger_transform_3.pre_multiply(Mat4.translation(-0.2, 0, 0))
-    lower_finger_transform_3.pre_multiply(Mat4.rotation(-middle_knuckle_bend, 0, 0, 1))
+		let lower_finger_transform_3 = Mat4.scale(scale *0.2, scale *0.05, scale *0.05)
+		lower_finger_transform_3.pre_multiply(Mat4.translation(scale *-0.2, 0, 0))
+		lower_finger_transform_3.pre_multiply(Mat4.rotation(-middle_knuckle_bend, 0, 0, 1))
 
     // lower_finger_transform.pre_multiply(finger_rotations[0])
 		let lower_finger_3 = new Node(
@@ -157,7 +194,7 @@ export const Articulated_Human = class Articulated_Human {
 		);
 
 		// Use an identity location matrix so that the lower finger's transform is applied in the parent's (rotated) frame.
-		let middle_knuckle_transform_3 = Mat4.translation(-0.55, 0, 0);
+		let middle_knuckle_transform_3 = Mat4.translation(scale *-0.55, 0, 0);
 		let middle_knuckle_3 = new Arc(
 			`finger${2}_middle_knuckle`,
 			upper_finger_3, // Attach to the upper finger
@@ -169,12 +206,28 @@ export const Articulated_Human = class Articulated_Human {
 
 		this.fingers.push({ knuckle: upper_knuckle_3 });
 
+
+		let fingertip_node_transform_3 = Mat4.scale(0.1, 0.1, 0.1).pre_multiply(Mat4.translation(-1 * this.scale * this.end_effector_offset, 0, 0))
+
+		let fingertip_node3 = new Node(
+			'fingertip_3', sphere_shape, fingertip_node_transform_3
+		)
+		let fingertip_transform_3 = Mat4.translation(-1 * this.scale * 0.1, 0, 0)
+		let fingertip_3 = new Arc(
+			"finger3_tip",
+			lower_finger_3,
+			fingertip_node3,
+			fingertip_transform_3
+		)
+		lower_finger_3.children_arcs.push(fingertip_3)
+		this.end_effector_3 = new End_Effector("end_3", lower_finger_3, Mat4.translation(-1 * this.scale * this.end_effector_offset, 0, 0))
+
     // #endregion
 
 
     // #region Finger 4
-		let knuckle_transform_4 = Mat4.scale(0.05, 0.05, 0.25);
-		knuckle_transform_4.pre_multiply(Mat4.translation(0, 0, 0.3));
+		let knuckle_transform_4 = Mat4.scale(scale * 0.05, scale * 0.05, scale * 0.25);
+		knuckle_transform_4.pre_multiply(Mat4.translation(0, 0, scale * 0.3));
 		let upper_finger_4 = new Node(
 			`finger${3}_knuckle`,
 			sphere_shape,
@@ -192,9 +245,9 @@ export const Articulated_Human = class Articulated_Human {
 
 		//   Lower finger (middle joint) – reworked to incorporate the offset into the node transform
 		// First rotate, then translate, then scale the lower finger
-    let lower_finger_transform_4 = Mat4.scale(0.05, 0.05, 0.2)
-    lower_finger_transform_4.pre_multiply(Mat4.translation(0, 0, 0.2))
-    lower_finger_transform_4.pre_multiply(Mat4.rotation(-middle_knuckle_bend, 1, 0, 0))
+		let lower_finger_transform_4 = Mat4.scale(scale * 0.05, scale * 0.05, scale * 0.2)
+		lower_finger_transform_4.pre_multiply(Mat4.translation(0, 0, scale * 0.2))
+		lower_finger_transform_4.pre_multiply(Mat4.rotation(-middle_knuckle_bend, 1, 0, 0))
 
     // lower_finger_transform2.pre_multiply(finger_rotations[0])
 		let lower_finger_4 = new Node(
@@ -204,7 +257,7 @@ export const Articulated_Human = class Articulated_Human {
 		);
 
 		// Use an identity location matrix so that the lower finger's transform is applied in the parent's (rotated) frame.
-		let middle_knuckle_transform_4 = Mat4.translation(0, 0, 0.55);
+		let middle_knuckle_transform_4 = Mat4.translation(0, 0, scale *0.55);
 		let middle_knuckle_4 = new Arc(
 			`finger${3}_middle_knuckle_4`,
 			upper_finger_4, // Attach to the upper finger
@@ -215,6 +268,20 @@ export const Articulated_Human = class Articulated_Human {
 		middle_knuckle_4.set_dof(false, false, false, true, false, false); // Enable rotation
 
 		this.fingers.push({ knuckle: upper_knuckle_4 });
+		let fingertip_node_transform_4 = Mat4.scale(0.1, 0.1, 0.1).pre_multiply(Mat4.translation(0, 0, 1 * this.scale * this.end_effector_offset))
+
+		let fingertip_node4 = new Node(
+			'fingertip_4', sphere_shape, fingertip_node_transform_4
+		)
+		let fingertip_transform_4 = Mat4.translation(0, 0, this.scale * 0.1)
+		let fingertip_4 = new Arc(
+			"finger4_tip",
+			lower_finger_4,
+			fingertip_node4,
+			fingertip_transform_4
+		)
+		lower_finger_4.children_arcs.push(fingertip_4)
+		this.end_effector_4 = new End_Effector("end_4", lower_finger_4, Mat4.translation(0, 0, 1 * this.scale * this.end_effector_offset))
 
     // #endregion
 
@@ -312,7 +379,9 @@ export const Articulated_Human = class Articulated_Human {
 			matrix.post_multiply(L.times(A));
 			this.matrix_stack.push(matrix.copy());
 
+			
 			const node = arc.child_node;
+			
 			const T = node.transform_matrix;
 			matrix.post_multiply(T);
 			node.shape.draw(webgl_manager, uniforms, matrix, material);

@@ -203,7 +203,7 @@ export const Part_three_chain_base =
       // this.curve = new Curve_Shape(null, 100);
       this.curves = [];
       this.update_scene();
-      this.human = new Articulated_Human();
+      this.human = new Articulated_Human(0.8);
     }
 
     render_animation(caller) {
