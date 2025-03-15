@@ -38,6 +38,8 @@ export class ClawScene {
     // Initialize physics
     this.ballPhysics = new BallPhysics();
 
+    this.pathT = 0
+
     // Store reference to the claw machine position
     this.clawMachinePosition = new THREE.Vector3(0, 0, 0);
 
@@ -175,7 +177,18 @@ export class ClawScene {
 
   initSimulation() {
     // Create chain simulation
-    this.chainSim = new ChainSim(this.scene);
+    // console.log("clawPath", this.clawPath)
+    let clawPosition = {
+      x: -13.05,
+      y: 1.6,
+      z: 22.8
+    }
+    const roofHeight = clawPosition.y + 4.0;
+    const pathWidth = 2.0;
+    const pathDepth = 2.0;
+    this.claw_position = new THREE.Vector3(clawPosition.x - pathWidth/2, roofHeight, clawPosition.z + pathDepth/2)
+    this.chainSim = new ChainSim(this.scene, this.claw_position);
+
 
     // Position the chain to start from the claw position
     this.updateClawPosition(this.claw_position);
@@ -215,6 +228,7 @@ export class ClawScene {
       for (const spring of this.chainSim.chainSim.springs) {
         spring.updateLine();
       }
+      this.chainSim.update(0.01)
     }
   }
 
@@ -1083,7 +1097,8 @@ export class ClawScene {
   update() {
     // Get time since last frame
     const time = this.clock.getElapsedTime();
-    const deltaTime = this.clock.getDelta();
+    // const deltaTime = this.clock.getDelta();
+    const deltaTime = 0.01
 
     // Apply animation mixer update for skeletal animations
     if (this.mixer) {
@@ -1093,9 +1108,10 @@ export class ClawScene {
     // Update claw position along the Hermite path if animation is active
     if (this.isClawMoving) {
       // Update path parameter based on time
-      this.pathT = Math.min(this.pathT + deltaTime * 0.1, 1.0);
+      this.pathT = Math.min(this.pathT + deltaTime, 1.0);
       if (this.pathT >= 1.0) {
-        this.isClawMoving = false;
+        // this.isClawMoving = false;
+        this.pathT = 0
       }
 
       // Move along the path
@@ -1858,7 +1874,7 @@ export class ClawScene {
 
     // Check if the ball's bounding sphere intersects with the barrier's bounding box
     if (sphere.intersectsBox(barrierBox)) {
-      console.log(`Ball ${ball.name} collided with barrier`);
+      // console.log(`Ball ${ball.name} collided with barrier`);
 
       // Calculate the penetration depth
       // For simplicity, we'll just push the ball back in the direction opposite to the barrier's normal

@@ -133,23 +133,26 @@ export class Simulation {
     
     // Updates positions and velocities of all particles
     integrate() {
-        for (const p of this.particles) {
-            if (!p.valid) continue;
-            
-            // Store previous position
-            p.prev_pos.copy(p.pos);
-            
-            // Compute acceleration
-            p.acc.copy(p.force).divideScalar(p.mass);
-            
-            // Update velocity (semi-implicit Euler integration)
-            p.vel.add(p.acc.clone().multiplyScalar(this.dt));
-            
-            // Update position
-            p.pos.add(p.vel.clone().multiplyScalar(this.dt));
-            
-            // Update the Three.js mesh position
-            p.updateMesh();
+        for (let i = 0; i<this.particles.length; i++) {
+            if(i!=0){
+                let p = this.particles[i]
+                if (!p.valid) continue;
+                
+                // Store previous position
+                p.prev_pos.copy(p.pos);
+                
+                // Compute acceleration
+                p.acc.copy(p.force).divideScalar(p.mass);
+                
+                // Update velocity (semi-implicit Euler integration)
+                p.vel.add(p.acc.clone().multiplyScalar(this.dt));
+                
+                // Update position
+                p.pos.add(p.vel.clone().multiplyScalar(this.dt));
+                
+                // Update the Three.js mesh position
+                p.updateMesh();
+            }
         }
         
         // Update spring line representations
@@ -174,28 +177,30 @@ export class Simulation {
 
 // Chain simulation - adapted for Three.js
 export class ChainSim {
-    constructor(scene) {
+    constructor(scene, position) {
+        console.log("position", position)
         this.scene = scene;
         this.chainSim = new Simulation();
         this.sphereGeometry = new THREE.SphereGeometry(0.2, 32, 32);
         this.sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x44aaff });
         this.lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
         
-        this.setupChain();
+        this.setupChain(position);
     }
     
-    setupChain() {
+    setupChain(position) {
         // Create particles
         for (let i = 0; i < 3; i++) {
             const particle = new Particle();
             particle.mass = 1;
-            particle.pos.set(0, 5 - (0.5 * i), 0);
+            particle.pos.set(position['x'], position['y'] - (0.5 * i), position['z']);
             particle.vel.set(0, 0, 0);
-            particle.valid = true;
+            
             
             // Create mesh for this particle
             particle.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
             particle.mesh.position.copy(particle.pos);
+            particle.mesh.scale.set(0.25,0.25,0.25)
             this.scene.add(particle.mesh);
             
             this.chainSim.particles.push(particle);
@@ -207,7 +212,7 @@ export class ChainSim {
             spring.particle_1 = this.chainSim.particles[i];
             spring.particle_2 = this.chainSim.particles[i+1];
             spring.ks = 500;
-            spring.kd = 10;
+            spring.kd = 100;
             spring.rest_length = 0.5;
             spring.valid = true;
             
@@ -230,106 +235,106 @@ export class ChainSim {
             this.chainSim.springs.push(spring);
         }
         
-        // Create additional particles for the claw
-        const particle3 = new Particle();
-        particle3.mass = 1;
-        particle3.pos.set(1.5, 3, 0);
-        particle3.vel.set(0, 0, 0);
-        particle3.valid = true;
-        particle3.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
-        particle3.mesh.position.copy(particle3.pos);
-        this.scene.add(particle3.mesh);
-        this.chainSim.particles.push(particle3);
+        // // Create additional particles for the claw
+        // const particle3 = new Particle();
+        // particle3.mass = 1;
+        // particle3.pos.set(1.5, 3, 0);
+        // particle3.vel.set(0, 0, 0);
+        // particle3.valid = true;
+        // particle3.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
+        // particle3.mesh.position.copy(particle3.pos);
+        // this.scene.add(particle3.mesh);
+        // this.chainSim.particles.push(particle3);
         
-        const particle4 = new Particle();
-        particle4.mass = 1;
-        particle4.pos.set(-0.75, 3, 1.3);
-        particle4.vel.set(0, 0, 0);
-        particle4.valid = true;
-        particle4.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
-        particle4.mesh.position.copy(particle4.pos);
-        this.scene.add(particle4.mesh);
-        this.chainSim.particles.push(particle4);
+        // const particle4 = new Particle();
+        // particle4.mass = 1;
+        // particle4.pos.set(-0.75, 3, 1.3);
+        // particle4.vel.set(0, 0, 0);
+        // particle4.valid = true;
+        // particle4.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
+        // particle4.mesh.position.copy(particle4.pos);
+        // this.scene.add(particle4.mesh);
+        // this.chainSim.particles.push(particle4);
         
-        const particle5 = new Particle();
-        particle5.mass = 1;
-        particle5.pos.set(-0.75, 3, -1.3);
-        particle5.vel.set(0, 0, 0);
-        particle5.valid = true;
-        particle5.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
-        particle5.mesh.position.copy(particle5.pos);
-        this.scene.add(particle5.mesh);
-        this.chainSim.particles.push(particle5);
+        // const particle5 = new Particle();
+        // particle5.mass = 1;
+        // particle5.pos.set(-0.75, 3, -1.3);
+        // particle5.vel.set(0, 0, 0);
+        // particle5.valid = true;
+        // particle5.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
+        // particle5.mesh.position.copy(particle5.pos);
+        // this.scene.add(particle5.mesh);
+        // this.chainSim.particles.push(particle5);
         
-        // Create springs for the claw
-        const spring2 = new Spring();
-        spring2.particle_1 = this.chainSim.particles[2];
-        spring2.particle_2 = this.chainSim.particles[3];
-        spring2.ks = 5000;
-        spring2.kd = 10;
-        spring2.rest_length = 2.5;
-        spring2.valid = true;
+        // // Create springs for the claw
+        // const spring2 = new Spring();
+        // spring2.particle_1 = this.chainSim.particles[2];
+        // spring2.particle_2 = this.chainSim.particles[3];
+        // spring2.ks = 5000;
+        // spring2.kd = 10;
+        // spring2.rest_length = 2.5;
+        // spring2.valid = true;
         
-        const lineGeometry2 = new THREE.BufferGeometry();
-        const positions2 = new Float32Array(6);
-        positions2[0] = spring2.particle_1.pos.x;
-        positions2[1] = spring2.particle_1.pos.y;
-        positions2[2] = spring2.particle_1.pos.z;
-        positions2[3] = spring2.particle_2.pos.x;
-        positions2[4] = spring2.particle_2.pos.y;
-        positions2[5] = spring2.particle_2.pos.z;
+        // const lineGeometry2 = new THREE.BufferGeometry();
+        // const positions2 = new Float32Array(6);
+        // positions2[0] = spring2.particle_1.pos.x;
+        // positions2[1] = spring2.particle_1.pos.y;
+        // positions2[2] = spring2.particle_1.pos.z;
+        // positions2[3] = spring2.particle_2.pos.x;
+        // positions2[4] = spring2.particle_2.pos.y;
+        // positions2[5] = spring2.particle_2.pos.z;
         
-        lineGeometry2.setAttribute('position', new THREE.BufferAttribute(positions2, 3));
-        spring2.line = new THREE.Line(lineGeometry2, this.lineMaterial);
-        this.scene.add(spring2.line);
+        // lineGeometry2.setAttribute('position', new THREE.BufferAttribute(positions2, 3));
+        // spring2.line = new THREE.Line(lineGeometry2, this.lineMaterial);
+        // this.scene.add(spring2.line);
         
-        this.chainSim.springs.push(spring2);
+        // this.chainSim.springs.push(spring2);
         
-        const spring3 = new Spring();
-        spring3.particle_1 = this.chainSim.particles[2];
-        spring3.particle_2 = this.chainSim.particles[4];
-        spring3.ks = 5000;
-        spring3.kd = 10;
-        spring3.rest_length = 2.5;
-        spring3.valid = true;
+        // const spring3 = new Spring();
+        // spring3.particle_1 = this.chainSim.particles[2];
+        // spring3.particle_2 = this.chainSim.particles[4];
+        // spring3.ks = 5000;
+        // spring3.kd = 10;
+        // spring3.rest_length = 2.5;
+        // spring3.valid = true;
         
-        const lineGeometry3 = new THREE.BufferGeometry();
-        const positions3 = new Float32Array(6);
-        positions3[0] = spring3.particle_1.pos.x;
-        positions3[1] = spring3.particle_1.pos.y;
-        positions3[2] = spring3.particle_1.pos.z;
-        positions3[3] = spring3.particle_2.pos.x;
-        positions3[4] = spring3.particle_2.pos.y;
-        positions3[5] = spring3.particle_2.pos.z;
+        // const lineGeometry3 = new THREE.BufferGeometry();
+        // const positions3 = new Float32Array(6);
+        // positions3[0] = spring3.particle_1.pos.x;
+        // positions3[1] = spring3.particle_1.pos.y;
+        // positions3[2] = spring3.particle_1.pos.z;
+        // positions3[3] = spring3.particle_2.pos.x;
+        // positions3[4] = spring3.particle_2.pos.y;
+        // positions3[5] = spring3.particle_2.pos.z;
         
-        lineGeometry3.setAttribute('position', new THREE.BufferAttribute(positions3, 3));
-        spring3.line = new THREE.Line(lineGeometry3, this.lineMaterial);
-        this.scene.add(spring3.line);
+        // lineGeometry3.setAttribute('position', new THREE.BufferAttribute(positions3, 3));
+        // spring3.line = new THREE.Line(lineGeometry3, this.lineMaterial);
+        // this.scene.add(spring3.line);
         
-        this.chainSim.springs.push(spring3);
+        // this.chainSim.springs.push(spring3);
         
-        const spring4 = new Spring();
-        spring4.particle_1 = this.chainSim.particles[2];
-        spring4.particle_2 = this.chainSim.particles[5];
-        spring4.ks = 5000;
-        spring4.kd = 10;
-        spring4.rest_length = 2.5;
-        spring4.valid = true;
+        // const spring4 = new Spring();
+        // spring4.particle_1 = this.chainSim.particles[2];
+        // spring4.particle_2 = this.chainSim.particles[5];
+        // spring4.ks = 5000;
+        // spring4.kd = 10;
+        // spring4.rest_length = 2.5;
+        // spring4.valid = true;
         
-        const lineGeometry4 = new THREE.BufferGeometry();
-        const positions4 = new Float32Array(6);
-        positions4[0] = spring4.particle_1.pos.x;
-        positions4[1] = spring4.particle_1.pos.y;
-        positions4[2] = spring4.particle_1.pos.z;
-        positions4[3] = spring4.particle_2.pos.x;
-        positions4[4] = spring4.particle_2.pos.y;
-        positions4[5] = spring4.particle_2.pos.z;
+        // const lineGeometry4 = new THREE.BufferGeometry();
+        // const positions4 = new Float32Array(6);
+        // positions4[0] = spring4.particle_1.pos.x;
+        // positions4[1] = spring4.particle_1.pos.y;
+        // positions4[2] = spring4.particle_1.pos.z;
+        // positions4[3] = spring4.particle_2.pos.x;
+        // positions4[4] = spring4.particle_2.pos.y;
+        // positions4[5] = spring4.particle_2.pos.z;
         
-        lineGeometry4.setAttribute('position', new THREE.BufferAttribute(positions4, 3));
-        spring4.line = new THREE.Line(lineGeometry4, this.lineMaterial);
-        this.scene.add(spring4.line);
+        // lineGeometry4.setAttribute('position', new THREE.BufferAttribute(positions4, 3));
+        // spring4.line = new THREE.Line(lineGeometry4, this.lineMaterial);
+        // this.scene.add(spring4.line);
         
-        this.chainSim.springs.push(spring4);
+        // this.chainSim.springs.push(spring4);
         
         // Configure simulation
         this.chainSim.g_acc.set(0, -9.8, 0);
