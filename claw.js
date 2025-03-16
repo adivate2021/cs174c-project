@@ -24,6 +24,7 @@ export class ClawScene {
     // Clock for animation timing
     this.clock = new THREE.Clock();
     this.clock.start();
+    this.ballGrabbed = false;
 
     // Initialize scene and components
     this.initScene();
@@ -1119,8 +1120,20 @@ export class ClawScene {
       }
 
       // Move along the path
-      const position = this.clawPath.getPointAt(this.pathT);
-      this.updateClawPosition(position);
+      if (!this.ballGrabbed) {
+        const position = this.clawPath.getPointAt(this.pathT);
+        this.updateClawPosition(position);
+        console.log(this.claw_position);
+      }
+      else {
+        const positionToReach = new THREE.Vector3(-11.9, 3.35, 24.0);
+        const difference = positionToReach.sub(this.claw_position);
+        const difference_norm = difference.normalize();
+        const position = new THREE.Vector3(0, 0, 0);
+        position.addVectors(this.claw_position, difference_norm.multiplyScalar(0.05));
+        position.y = this.claw_position.y;
+        this.updateClawPosition(position);
+      }
 
       // Update IK if we have a target
       const targetPos = this.clawMechanism.position
