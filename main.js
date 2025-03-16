@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ClawScene } from './claw.js';
 import { HermitePath } from './three-hermite.js';
+// import { Claw } from './clawV2.js';
 import { catmullRomTangents } from './three-catmull-rom.js';
 
 // Make THREE and OrbitControls available globally for other modules

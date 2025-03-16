@@ -1101,7 +1101,7 @@ export class ClawScene {
     // Get time since last frame
     const time = this.clock.getElapsedTime();
     // const deltaTime = this.clock.getDelta();
-    const deltaTime = 0.01
+    const deltaTime = 0.005
 
     // Apply animation mixer update for skeletal animations
     if (this.mixer) {
@@ -1479,7 +1479,7 @@ export class ClawScene {
     if(this.lowered){
       console.log("Raising Claw")
       this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].ks = 500
-      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].kd = 100
+      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].kd = 300
     }
     else{
       console.log("Lowering Claw")
