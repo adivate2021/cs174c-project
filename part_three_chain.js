@@ -136,7 +136,8 @@ export const Part_three_chain_base =
     // exposes only the display() method, which actually places and draws the shapes,
     // isolating that code so it can be experimented with on its own.
     init() {
-      this.my_t = 0
+      this.my_t = 0;
+      this.my_t2 = 0;
 
       console.log("init");
 
@@ -203,7 +204,7 @@ export const Part_three_chain_base =
       // this.curve = new Curve_Shape(null, 100);
       this.curves = [];
       this.update_scene();
-      this.human = new Articulated_Human(0.8);
+      this.human = new Articulated_Human(0.8, 0.8);
     }
 
     render_animation(caller) {
@@ -268,7 +269,6 @@ export const Part_three_chain_base =
   });
 
 export class Claw_Scene extends Part_three_chain_base {
-
   // **Part_one_hermite** is a Scene object that can be added to any display canvas.
   // This particular scene is broken up into two pieces for easier understanding.
   // See the other piece, My_Demo_Base, if you need to see the setup code.
@@ -508,9 +508,11 @@ export class Claw_Scene extends Part_three_chain_base {
   }
 
   debug_claw() {
-    this.human.update(this.my_t)
-    this.my_t += 0.01
-    
+    let theta = [this.my_t, 0, this.my_t, 0, this.my_t, 0, this.my_t, 0];
+    this.human.update(theta);
+    let pos = this.human.get_end_effector_positions();
+    this.my_t += 0.01;
+    this.my_t2 += 0.01;
   }
 
   parse_commands() {
