@@ -198,7 +198,7 @@ export class ChainSim {
         for (let i = 0; i < 10; i++) {
             const particle = new Particle();
             particle.mass = 1;
-            particle.pos.set(this.position.x, this.position.y - (0.25 * i), this.position.z);
+            particle.pos.set(this.position.x, this.position.y - (0.35 * i), this.position.z);
             particle.vel.set(0, 0, 0);
             
             
@@ -207,6 +207,9 @@ export class ChainSim {
             particle.mesh.position.copy(particle.pos);
             particle.mesh.scale.set(0.25,0.25,0.25)
             this.scene.add(particle.mesh);
+            if(i<9){
+                particle.mesh.visible = false
+            }
             
             this.chainSim.particles.push(particle);
         }
@@ -366,7 +369,7 @@ export class ChainSim {
     reset() {
         // Reset particle positions and velocities
         for (let i = 0; i < 10; i++) {
-            this.chainSim.particles[i].pos.set(this.position.x, this.position.y - (0.25 * i), this.position.z);
+            this.chainSim.particles[i].pos.set(this.position.x, this.position.y - (0.35 * i), this.position.z);
             this.chainSim.particles[i].vel.set(0, 0, 0);
             this.chainSim.particles[i].updateMesh();
         }
