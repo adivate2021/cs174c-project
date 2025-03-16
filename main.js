@@ -195,20 +195,26 @@ function createControls(scene) {
     controlsContainer.appendChild(physicsButton);
 
     // Create Lower Raise button
-    const lowerRaiseButton = document.createElement('button');
-    lowerRaiseButton.textContent = 'Lower Claw/Raise Claw';
-    lowerRaiseButton.style.backgroundColor = '#102bc2';
-    Object.assign(lowerRaiseButton.style, buttonStyle, { backgroundColor: '#102bc2' });
-    lowerRaiseButton.addEventListener('click', () => {
-        scene.lowerRaise();
+    // const lowerRaiseButton = document.createElement('button');
+    // lowerRaiseButton.textContent = 'Lower Claw/Raise Claw';
+    // lowerRaiseButton.style.backgroundColor = '#102bc2';
+    // Object.assign(lowerRaiseButton.style, buttonStyle, { backgroundColor: '#102bc2' });
+    // lowerRaiseButton.addEventListener('click', () => {
+    //     scene.lowerRaise();
+    // });
+    // lowerRaiseButton.addEventListener('mouseover', () => {
+    //     lowerRaiseButton.style.backgroundColor = '#0d2297';
+    // });
+    // lowerRaiseButton.addEventListener('mouseout', () => {
+    //     lowerRaiseButton.style.backgroundColor = '#102bc2';
+    // });
+    // controlsContainer.appendChild(lowerRaiseButton);
+    document.addEventListener('keydown', (event) => {
+        if (event.code === 'Space'){
+            event.preventDefault()
+            scene.lowerRaise()
+        }
     });
-    lowerRaiseButton.addEventListener('mouseover', () => {
-        lowerRaiseButton.style.backgroundColor = '#0d2297';
-    });
-    lowerRaiseButton.addEventListener('mouseout', () => {
-        lowerRaiseButton.style.backgroundColor = '#102bc2';
-    });
-    controlsContainer.appendChild(lowerRaiseButton);
 }
 
 function loadClawMachineModel(scene) {
@@ -569,7 +575,7 @@ function updateHermitePathToMatchRoof(scene, roofPart, clawPosition) {
     }
     
     // Calculate the roof height - a bit below the top of the claw machine
-    const roofHeight = clawPosition.y + 4.0; // Approximately 4 units above the base
+    const roofHeight = clawPosition.y + 6.5; // Approximately 4 units above the base
     console.log(`Setting path at height ${roofHeight}`);
     
     // Create points for a path around the inside perimeter

@@ -184,7 +184,7 @@ export class ClawScene {
       y: 1.6,
       z: 22.8
     }
-    const roofHeight = clawPosition.y + 4.0;
+    const roofHeight = clawPosition.y + 6.5;
     const pathWidth = 2.0;
     const pathDepth = 2.0;
     this.claw_position = new THREE.Vector3(clawPosition.x - pathWidth/2, roofHeight, clawPosition.z + pathDepth/2)
@@ -1100,7 +1100,7 @@ export class ClawScene {
     // Get time since last frame
     const time = this.clock.getElapsedTime();
     // const deltaTime = this.clock.getDelta();
-    const deltaTime = 0.02
+    const deltaTime = 0.01
 
     // Apply animation mixer update for skeletal animations
     if (this.mixer) {
@@ -1425,14 +1425,14 @@ export class ClawScene {
   }
 
   resetSimulation() {
+    this.pathT = 0
+    this.updateClawPosition(this.init_claw_pos);
     this.chainSim.reset();
 
     // Reset claw position
     this.clawPath.currentCurveIndex = 0;
     this.clawPath.currentParameter = 0;
     // const pathPosition = this.clawPath.getCurrentPoint();
-    console.log(this.init_claw_pos)
-    this.updateClawPosition(this.init_claw_pos);
   }
 
   toggleGravity() {
@@ -1465,13 +1465,16 @@ export class ClawScene {
   lowerRaise(){
     if(this.lowered){
       console.log("Raising Claw")
-      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].ks = 100
+      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].ks = 500
+      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].kd = 100
     }
     else{
       console.log("Lowering Claw")
       this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].ks = 0
+      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].kd = 10
     }
     this.lowered = !this.lowered
+    this.chainSim.chainSim.lowered = this.lowered
   }
 
   // Calculate distance between two points

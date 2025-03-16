@@ -62,6 +62,7 @@ export class Simulation {
         this.ground_kd = 10;  // ground damping constant
         this.dt = 0.01;  // simulation time step
         this.gravity_enabled = true;
+        this.lowered = false
     }
     
     // Computes forces for all particles and springs
@@ -149,7 +150,10 @@ export class Simulation {
                 
                 // Update position
                 p.pos.add(p.vel.clone().multiplyScalar(this.dt));
-                
+                if(this.lowered && i == this.particles.length - 1 && this.particles[i].pos.y <= 3.8){
+                    p.pos.y = p.prev_pos.y
+                    console.log(p.pos.y)
+                }
                 // Update the Three.js mesh position
                 p.updateMesh();
             }
@@ -191,10 +195,10 @@ export class ChainSim {
     
     setupChain() {
         // Create particles
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
             const particle = new Particle();
             particle.mass = 1;
-            particle.pos.set(this.position.x, this.position.y - (0.5 * i), this.position.z);
+            particle.pos.set(this.position.x, this.position.y - (0.25 * i), this.position.z);
             particle.vel.set(0, 0, 0);
             
             
@@ -208,12 +212,12 @@ export class ChainSim {
         }
         
         // Create springs between particles
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < 9; i++) {
             const spring = new Spring();
             spring.particle_1 = this.chainSim.particles[i];
             spring.particle_2 = this.chainSim.particles[i+1];
-            spring.ks = 100;
-            spring.kd = 10;
+            spring.ks = 500;
+            spring.kd = 100;
             spring.rest_length = 0.25;
             spring.valid = true;
             
@@ -361,7 +365,7 @@ export class ChainSim {
     
     reset() {
         // Reset particle positions and velocities
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
             this.chainSim.particles[i].pos.set(this.position.x, this.position.y - (0.25 * i), this.position.z);
             this.chainSim.particles[i].vel.set(0, 0, 0);
             this.chainSim.particles[i].updateMesh();
