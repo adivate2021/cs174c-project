@@ -13,178 +13,112 @@ export class ClawCustom extends THREE.Group {
   constructor(scale, middleKnuckleBend) {
     super();
     this.scaleValue = scale;
-    this.middleKnuckleBend = middleKnuckleBend; // Currently not used for rotations
+    this.upperKnuckleBend = middleKnuckleBend; // Currently not used for rotations
+    this.lowerKnuckleBend = Math.PI/4;
     this.endEffectorOffset = 0.4;
     this.endEffectors = [];
 
     // Create the base of the claw (the root)
     const baseMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 16, 16),
+      new THREE.SphereGeometry(1, 32, 32),
       new THREE.MeshNormalMaterial()
     );
     // Scale down the base
-    baseMesh.scale.set(scale * 0.1, scale * 0.1, scale * 0.1);
+	let baseScale = this.scaleValue * .2
     // Create a group to serve as the claw node and add the base mesh
     this.clawNode = new THREE.Group();
     this.clawNode.add(baseMesh);
+    this.clawNode.scale.set(baseScale, baseScale, baseScale);
     this.add(this.clawNode);
 
-    // Define finger offset positions (for a 4-finger layout: east, south, west, north)
-    const fingerPositions = [
-      new THREE.Vector3(scale * 0.05, 0, 0), // Finger 1: East
-      new THREE.Vector3(0, 0, -scale * 0.05), // Finger 2: South
-      new THREE.Vector3(-scale * 0.05, 0, 0), // Finger 3: West
-      new THREE.Vector3(0, 0, scale * 0.05), // Finger 4: North
-    ];
-    const lowerFingerPositions = [
-      new THREE.Vector3(scale * 0.25, 0, 0), // Finger 1: East
-      new THREE.Vector3(0, 0, -scale * 0.25), // Finger 2: South
-      new THREE.Vector3(-scale * 0.25, 0, 0), // Finger 3: West
-      new THREE.Vector3(0, 0, scale * 0.25), // Finger 4: North
-    ];
+    // // Define finger offset positions (for a 4-finger layout: east, south, west, north)
+    // const fingerPositions = [
+    //   new THREE.Vector3(scale * 0.05, 0, 0), // Finger 1: East
+    //   new THREE.Vector3(0, 0, -scale * 0.05), // Finger 2: South
+    //   new THREE.Vector3(-scale * 0.05, 0, 0), // Finger 3: West
+    //   new THREE.Vector3(0, 0, scale * 0.05), // Finger 4: North
+    // ];
+    // const lowerFingerPositions = [
+    //   new THREE.Vector3(scale * 0.25, 0, 0), // Finger 1: East
+    //   new THREE.Vector3(0, 0, -scale * 0.25), // Finger 2: South
+    //   new THREE.Vector3(-scale * 0.25, 0, 0), // Finger 3: West
+    //   new THREE.Vector3(0, 0, scale * 0.25), // Finger 4: North
+    // ];
+      const upperFingerLength = .5 * this.scaleValue;
+      const lowerFingerLength = 0.8 * this.scaleValue
+      const fingerThickness = 0.1 * this.scaleValue
+      const upperFingerGeometry = new THREE.BoxGeometry(upperFingerLength, fingerThickness, fingerThickness);
+      const lowerFingerGeometry = new THREE.BoxGeometry(lowerFingerLength, fingerThickness, fingerThickness);
+      const fingerMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
 
-    // Build each finger (0 to 3)
-    for (let i = 0; i < 4; i++) {
-      // -----------------------
-      // Create a pivot for the upper finger so it attaches at the proper offset.
-      const fingerPivot = new THREE.Group();
-      fingerPivot.name = `fingerPivot${i}`;
-      fingerPivot.position.copy(fingerPositions[i]);
+      // Define the angles (in radians) for each of the 4 fingers around the sphere.
+      const fingerAngles = [0, Math.PI/2, Math.PI, -Math.PI/2];
 
-      // -----------------------
-      // Upper Finger Group
-      const upperFingerGroup = new THREE.Group();
-      // For simplicity we set different translations/scales based on finger index.
-      // Adjust these values to suit your design.
-      if (i === 0) {
-        // Finger 1: East
-        upperFingerGroup.position.set(scale * 0.3, 0, 0);
-        upperFingerGroup.scale.set(scale * 0.25, scale * 0.05, scale * 0.05);
-      } else if (i === 1) {
-        // Finger 2: South
-        upperFingerGroup.position.set(0, 0, -scale * 0.3);
-        upperFingerGroup.scale.set(scale * 0.05, scale * 0.05, scale * 0.25);
-      } else if (i === 2) {
-        // Finger 3: West
-        upperFingerGroup.position.set(-scale * 0.3, 0, 0);
-        upperFingerGroup.scale.set(scale * 0.25, scale * 0.05, scale * 0.05);
-      } else if (i === 3) {
-        // Finger 4: North
-        upperFingerGroup.position.set(0, 0, scale * 0.3);
-        upperFingerGroup.scale.set(scale * 0.05, scale * 0.05, scale * 0.25);
-      }
-      upperFingerGroup.name = `upperFingerGroup${i}`;
-      // Add a debug mesh for visualization (upper finger)
-      const upperFingerMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 16, 16),
-        new THREE.MeshNormalMaterial()
-      );
-      upperFingerGroup.add(upperFingerMesh);
-
-      // Attach the upper finger group to the pivot
-      fingerPivot.add(upperFingerGroup);
-      // Attach the pivot to the claw node
-      this.clawNode.add(fingerPivot);
-      // Create an intermediate pivot at the desired attachment point
-      const lowerFingerPivot = new THREE.Group();
-      lowerFingerPivot.position.set(
-        lowerFingerPositions[i].x,
-        lowerFingerPositions[i].y,
-        lowerFingerPositions[i].z
-      ); // relative to upperFingerGroup
-      lowerFingerPivot.name = `lowerFingerPivot${i}`;
-      upperFingerGroup.add(lowerFingerPivot);
-
-      // Now add the lower finger to the pivot:
-      //   scale *= 5;
-      const lowerFingerGroup = new THREE.Group();
-      let lower_finger_offset = 0.2;
-      if (i === 0 || i === 2) {
-        // For east and west fingers, translate along X.
-        lowerFingerGroup.position.set(
-          i == 2 ? -scale * lower_finger_offset : scale * lower_finger_offset,
-          //   0,
-          0,
-          0
-        );
-        lowerFingerGroup.scale.set(scale * 0.2, scale * 0.2, scale * 0.2);
-      } else {
-        // For south and north fingers, translate along Z.
-        lowerFingerGroup.position.set(
-          0,
-          0,
-          //   0
-          i === 1 ? -scale * lower_finger_offset : scale * lower_finger_offset
-        );
-        lowerFingerGroup.scale.set(scale * 0.2, scale * 0.2, scale * 0.2);
-      }
-      lowerFingerGroup.name = `lowerFingerGroup${i}`;
-      const lowerFingerMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 16, 16),
-        new THREE.MeshNormalMaterial()
-      );
-      lowerFingerPivot.matrixAutoUpdate = true;
-      lowerFingerGroup.matrixAutoUpdate = true;
-      lowerFingerMesh.matrixAutoUpdate = true;
-
-      //   lowerFingerMesh.geometry.translate(-0.5, 0, 0);
-      lowerFingerGroup.add(lowerFingerMesh);
-      lowerFingerPivot.add(lowerFingerGroup);
-
-      //   lowerFingerPivot.rotation.x = Math.PI / 2;
-      const axesHelper = new THREE.AxesHelper(5);
-      lowerFingerPivot.add(axesHelper);
-      //   lowerFingerPivot.rotation.z = Math.PI / 4;
-      lowerFingerPivot.updateMatrixWorld(true);
-
-      console.log("Lower finger pivot:", lowerFingerPivot);
-
-      // -----------------------
-      // Lower Finger Group (child of the upper finger)
-
-      // Add a debug mesh for visualization (lower finger)
-
-      // Attach the lower finger group to the upper finger group
-      //   upperFingerGroup.add(lowerFingerGroup);
-
-      // -----------------------
-      // Fingertip Node (child of the lower finger)
-      //   const fingertipGroup = new THREE.Group();
-      //   if (i === 0 || i === 2) {
-      //     fingertipGroup.position.set(this.endEffectorOffset * scale, 0, 0);
-      //   } else {
-      //     fingertipGroup.position.set(
-      //       0,
-      //       0,
-      //       i === 1
-      //         ? -this.endEffectorOffset * scale
-      //         : this.endEffectorOffset * scale
-      //     );
-      //   }
-      //   fingertipGroup.scale.set(1, 0.1, 0.1);
-
-      // Add a debug circle to help visualize the fingertip node
-      const debugGeo = new THREE.CircleGeometry(0.15, 32);
-      const debugMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const debugCircle = new THREE.Mesh(debugGeo, debugMat);
-      // Rotate so the circle faces upward (adjust as needed)
-      debugCircle.rotation.z = -Math.PI / 2;
-      //   fingertipGroup.add(debugCircle);
-
-      // Attach the fingertip group to the lower finger group
-      //   lowerFingerGroup.add(fingertipGroup);
-
-      // -----------------------
-      // Create and store the end effector (using the fingertip group as its parent)
-      //   const endEffector = new EndEffector(
-      //     `end_${i + 1}`,
-      //     fingertipGroup,
-      //     new THREE.Vector3(0, 0, 0)
-      //   );
-      //   this.endEffectors.push(endEffector);
-    }
+      // Create 4 fingers.
+      fingerAngles.forEach((angle, index) => {
+				// Create a group for the finger that pivots around the sphere's center.
+				const fingerGroup = new THREE.Group();
+				// Add the group as a child of the sphere so it pivots about the sphere's center.
+				
+				// Rotate the entire finger group so the finger points outward.
+				fingerGroup.rotation.z = -this.upperKnuckleBend;
+				fingerGroup.rotation.y = angle;
+				
+				// Create the upper finger.
+				// To ensure the pivot is at the left end, we shift the geometry.
+				const upperFinger = new THREE.Mesh(
+					upperFingerGeometry,
+					fingerMaterial
+				);
+				
+				//translate by the radius of the root ball + half length of the box
+				// all translations need to be scaled by scale * 0.1 now
+				upperFinger.geometry.translate(
+					(1 + upperFingerLength/2),
+					0,
+					0
+				);
+				fingerGroup.add(upperFinger);
+				this.clawNode.add(fingerGroup);
+		  
+				// Create a pivot for the lower finger at the tip of the upper finger.
+				const lowerFingerPivot = new THREE.Group();
+				lowerFingerPivot.position.set(
+				  this.scaleValue * 0.1 + upperFingerLength,
+				  fingerThickness / 2,
+				  0
+				);
+				upperFinger.add(lowerFingerPivot);
+		  
+				// Create the lower finger.
+				const lowerFinger = new THREE.Mesh(
+				  lowerFingerGeometry,
+				  fingerMaterial
+				);
+				lowerFinger.geometry.translate(
+				  this.scaleValue * 0.1 * (lowerFingerLength * 1/scale * 1.25),
+				  -this.scaleValue * 0.1 * (fingerThickness * 1/scale * 1.25),
+				  0
+				);
+				lowerFingerPivot.add(lowerFinger);
+		  
+				// Optionally, set an initial rotation for the lower finger (e.g., a 30° bend).
+				lowerFingerPivot.rotation.z = -1 * this.upperKnuckleBend; // adjust as needed
+		  
+				// Optional: add an axes helper to visualize the finger's local axes.
+				const axesHelper = new THREE.AxesHelper(2);
+				fingerGroup.add(axesHelper);
+				// const axesHelper1 = new THREE.AxesHelper(2)
+				// upperFinger.add(axesHelper1)
+				// const axesHelper2 = new THREE.AxesHelper(5);
+				// lowerFinger.add(axesHelper2);
+				// const axesHelper3 = new THREE.AxesHelper(2);
+				// lowerFingerPivot.add(axesHelper3);
+			  });
   }
-
+  rotate(theta) {
+    this.upperKnuckleBend += theta
+  }
   // Method to update the global positions of all end effectors
   getEndEffectorPositions() {
     this.updateMatrixWorld(true);

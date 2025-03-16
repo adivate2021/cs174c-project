@@ -5,6 +5,7 @@ import { ChainSim, BallPhysics, BoundingBoxCollider } from "./three-physics.js";
 import { HermiteCurve, HermitePath } from "./three-hermite.js";
 import { CatmullRomPath, catmullRomTangents } from "./three-catmull-rom.js";
 import { Matrix4, Quaternion, Euler } from "three";
+// import { ClawCustom } from "./claw-v2.js";
 
 // Constants for the inverse kinematics
 const IK_ITERATIONS = 10;
@@ -33,6 +34,7 @@ export class ClawScene {
     this.initHermiteCurves();
     this.initCameraControls();
     this.initClawMachine();
+    this.initCustomClaw(0.6, 0.15, Math.PI/3);
     this.initToys();
     this.initInverseKinematics();
     this.initSimulation();
@@ -188,15 +190,15 @@ export class ClawScene {
     const roofHeight = clawPosition.y + 6.5;
     const pathWidth = 2.0;
     const pathDepth = 2.0;
-    this.claw_position = new THREE.Vector3(clawPosition.x - pathWidth/2, roofHeight, clawPosition.z + pathDepth/2)
+    this.claw_position = new THREE.Vector3(clawPosition.x - pathWidth/2, roofHeight - 2, clawPosition.z + pathDepth/2)
     this.init_claw_pos = new THREE.Vector3(this.claw_position.x, this.claw_position.y, this.claw_position.z)
     this.chainSim = new ChainSim(this.scene, this.claw_position);
 
 
     // Position the chain to start from the claw position
     this.updateClawPosition(this.claw_position);
+    this.updateCustomClawPosition(this.claw_position)
   }
-
   updateClawPosition(position) {
     // Add null check for position
     if (!position) {
@@ -260,7 +262,115 @@ export class ClawScene {
     // The actual box will be created in updateMachineBounds with the correct position
     this.machineBoundsInitialized = false;
   }
-
+  setCustomClawScale(scale) {
+    this.scaleValue = scale
+  }
+  initCustomClaw(scale, upperKnuckleBend, lowerKnuckleBend) {
+        this.scaleValue = scale;
+        this.upperKnuckleBend = upperKnuckleBend; // Currently not used for rotations
+        this.middleKnuckle = Math.PI/2;
+        this.endEffectorOffset = 0.4;
+        this.endEffectors = [];
+        this.openingCustomClaw = false
+        this.closingCustomClaw = false
+        this.maxAngleBend = Math.PI/4
+        this.minAngleBend = 0.15
+    
+        // Create the base of the claw (the root)
+        const baseMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(1, 32, 32),
+          new THREE.MeshNormalMaterial()
+        );
+        // Scale down the base
+        baseMesh.scale.set(this.scaleValue * 0.1, this.scaleValue * 0.1, this.scaleValue * 0.1);
+        // Create a group to serve as the claw node and add the base mesh
+        this.clawNode = new THREE.Group();
+        this.clawNode.add(baseMesh);
+        this.scene.add(this.clawNode);
+        const upperFingerLength = 2 * this.scaleValue;
+        const lowerFingerLength = 0.8 * this.scaleValue;
+        const fingerThickness = 0.1 * this.scaleValue;
+        const upperFingerGeometry = new THREE.BoxGeometry(
+          upperFingerLength,
+          fingerThickness,
+          fingerThickness
+        );
+        const lowerFingerGeometry = new THREE.BoxGeometry(
+          lowerFingerLength,
+          fingerThickness,
+          fingerThickness
+        );
+        const fingerMaterial = new THREE.MeshStandardMaterial({
+          color: 0x00ff00,
+        });
+    
+        // Define the angles (in radians) for each of the 4 fingers around the sphere.
+        const fingerAngles = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+    
+        // Create 4 fingers.
+        fingerAngles.forEach((angle, index) => {
+          // Create a group for the finger that pivots around the sphere's center.
+          const fingerGroup = new THREE.Group();
+          // Add the group as a child of the sphere so it pivots about the sphere's center.
+          this.clawNode.add(fingerGroup);
+    
+          // Rotate the entire finger group so the finger points outward.
+          fingerGroup.rotation.z = -this.upperKnuckleBend;
+          fingerGroup.rotation.y = angle;
+    
+          // Create the upper finger.
+          // To ensure the pivot is at the left end, we shift the geometry.
+          const upperFinger = new THREE.Mesh(
+            upperFingerGeometry,
+            fingerMaterial
+          );
+    
+          //translate by the radius of the root ball + half length of the box
+          // all translations need to be scaled by scale * 0.1 now
+          upperFinger.geometry.translate(
+            this.scaleValue * 0.1 * (1 + upperFingerLength / 2),
+            0,
+            0
+          );
+          fingerGroup.add(upperFinger);
+    
+          // Create a pivot for the lower finger at the tip of the upper finger.
+          const lowerFingerPivot = new THREE.Group();
+          lowerFingerPivot.position.set(
+            this.scaleValue * 0.1 + upperFingerLength,
+            fingerThickness / 2,
+            0
+          );
+          upperFinger.add(lowerFingerPivot);
+    
+          // Create the lower finger.
+          const lowerFinger = new THREE.Mesh(
+            lowerFingerGeometry,
+            fingerMaterial
+          );
+          lowerFinger.geometry.translate(
+            this.scaleValue * 0.1 * (lowerFingerLength * 1/scale * 1.25),
+            -this.scaleValue * 0.1 * (fingerThickness * 1/scale * 1.25),
+            0
+          );
+          lowerFingerPivot.add(lowerFinger);
+    
+          // Optionally, set an initial rotation for the lower finger (e.g., a 30° bend).
+          lowerFingerPivot.rotation.z = -1 * this.middleKnuckle; // adjust as needed
+    
+          // Optional: add an axes helper to visualize the finger's local axes.
+          // const axesHelper = new THREE.AxesHelper(2);
+          // fingerGroup.add(axesHelper);
+          // const axesHelper1 = new THREE.AxesHelper(2)
+          // upperFinger.add(axesHelper1)
+          // const axesHelper2 = new THREE.AxesHelper(5);
+          // lowerFinger.add(axesHelper2);
+          // const axesHelper3 = new THREE.AxesHelper(2);
+          // lowerFingerPivot.add(axesHelper3);
+        });
+    // this.customClaw = new ClawCustom(1, Math.PI/3)
+    // this.updateCustomClawPosition(new THREE.Vector3(-14.4, 3, 21.5))
+  }
   initToys() {
     console.log("Initializing toys with direct positioning");
 
@@ -1123,6 +1233,7 @@ export class ClawScene {
       if (!this.ballGrabbed) {
         const position = this.clawPath.getPointAt(this.pathT);
         this.updateClawPosition(position);
+        this.updateCustomClawPosition(position);
         console.log(this.claw_position);
       }
       else {
@@ -1141,10 +1252,10 @@ export class ClawScene {
         .add(new THREE.Vector3(0, -2, 0));
       this.solveIK(targetPos);
     }
-
+    
     // Update toy physics
     this.updateToyPhysics(deltaTime, time);
-
+    
     // Check for balls in the glass hole
     if (this.toys && this.toys.length > 0 && this.glassHoleBounds) {
       for (const toy of this.toys) {
@@ -1154,6 +1265,23 @@ export class ClawScene {
       }
     }
 
+    if(this.openingCustomClaw) {
+      if(this.upperKnuckleBend <= this.maxAngleBend) {
+        console.log("upper knuckle bend: ", this.upperKnuckleBend)
+        this.rotateCustomClaw(deltaTime * 0.5)
+      }
+      else {
+        this.openingCustomClaw = false
+      }
+    }
+    if(this.closingCustomClaw) {
+      if(this.minAngleBend <= this.upperKnuckleBend) {
+        this.rotateCustomClaw(-deltaTime * 0.5)
+      }
+      else {
+        this.closingCustomClaw = false
+      }
+    }
     // Update particle effects for ball removal
     this.updateRemovalEffects(deltaTime);
 
@@ -1474,7 +1602,26 @@ export class ClawScene {
       }
     }
   }
-
+  updateCustomClawPosition(position) {
+    this.clawNode.position.set(position.x, position.y, position.z);
+  }
+  rotateCustomClaw(theta) {
+    console.log("rotating custom claw:")
+    this.upperKnuckleBend += theta
+    for(let knuckle of this.clawNode.children) {
+      if(knuckle.type === "Group") {
+        knuckle.rotation.z = -this.upperKnuckleBend
+      }
+    }
+  }
+  closeCustomClaw() {
+    this.closingCustomClaw = true
+    this.openingCustomClaw = false
+  }
+  openCustomClaw() {
+    this.closingCustomClaw = false
+    this.openingCustomClaw = true
+  }
   lowerRaise(){
     if(this.lowered){
       console.log("Raising Claw")
@@ -1980,4 +2127,28 @@ export class ClawScene {
     console.log(`Enabled physics for ${enabledCount} balls`);
     return enabledCount;
   }
+}
+
+
+class EndEffector {
+	constructor(name, parent, localPosition) {
+		this.name = name;
+		this.parent = parent; // a THREE.Group (or mesh) holding the tip geometry
+		this.localPosition = localPosition; // THREE.Vector3
+		this.globalPosition = new THREE.Vector3();
+	}
+}
+
+class ClawCustom extends THREE.Group {
+	rotate(theta) {
+		this.middleKnuckleBend += theta;
+	}
+	// Method to update the global positions of all end effectors
+	getEndEffectorPositions() {
+		this.updateMatrixWorld(true);
+		return this.endEffectors.map((eff) => {
+			eff.globalPosition.setFromMatrixPosition(eff.parent.matrixWorld);
+			return eff.globalPosition.clone();
+		});
+	}
 }

@@ -67,9 +67,10 @@ function init() {
     loadClawMachineModel(clawSceneInstance);
 
     //
-    const customClaw = new ClawCustom(4, 0.15);
+    const customClaw = new ClawCustom(3, 0.15);
+    customClaw.rotate(1)
     // Set its position so that it is visible in the scene.
-    customClaw.position.set(-13, 2, 15);
+    customClaw.position.set(-13, 5, 15);
     // Add the custom claw to the scene.
     clawSceneInstance.scene.add(customClaw);
     console.log("Custom claw added to scene");
@@ -84,6 +85,7 @@ function init() {
       requestAnimationFrame(animate);
 
       // Update the scene
+      
       clawSceneInstance.update();
 
       // Render the scene
@@ -155,6 +157,43 @@ function createControls(scene) {
     gravityButton.style.backgroundColor = "#2196F3";
   });
   controlsContainer.appendChild(gravityButton);
+
+  // Open Claw button for debugging
+  const openClawButton = document.createElement("button");
+  openClawButton.textContent = "Open Claw";
+  openClawButton.style.backgroundColor = "#2196F3";
+  Object.assign(openClawButton.style, buttonStyle, {
+    backgroundColor: "#2196F3",
+  });
+  openClawButton.addEventListener("click", () => {
+    scene.closeCustomClaw();
+    console.log("Gravity toggled");
+  });
+  openClawButton.addEventListener("mouseover", () => {
+    openClawButton.style.backgroundColor = "#0b7dda";
+  });
+  openClawButton.addEventListener("mouseout", () => {
+    openClawButton.style.backgroundColor = "#2196F3";
+  });
+  controlsContainer.appendChild(openClawButton);
+  // Close Claw button for debugging
+  const closeClawButton = document.createElement("button");
+  closeClawButton.textContent = "Close Claw";
+  closeClawButton.style.backgroundColor = "#2196F3";
+  Object.assign(closeClawButton.style, buttonStyle, {
+    backgroundColor: "#2196F3",
+  });
+  closeClawButton.addEventListener("click", () => {
+    scene.openCustomClaw();
+    console.log("Gravity toggled");
+  });
+  closeClawButton.addEventListener("mouseover", () => {
+    closeClawButton.style.backgroundColor = "#0b7dda";
+  });
+  closeClawButton.addEventListener("mouseout", () => {
+    closeClawButton.style.backgroundColor = "#2196F3";
+  });
+  controlsContainer.appendChild(closeClawButton);
 
   // Create Move Claw button
   const clawButton = document.createElement("button");
