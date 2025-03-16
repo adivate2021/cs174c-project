@@ -7,11 +7,13 @@ const shapes = {
   sphere: new defs.Subdivision_Sphere(5),
 };
 
-export const Articulated_Human = class Articulated_Human {
+export const Claw = class Articulated_Human {
   constructor(scale, middle_knuckle_bend) {
     this.scale = scale;
     this.middle_knuckle_bend = middle_knuckle_bend;
     const sphere_shape = shapes.sphere;
+    // joint closest to center of the claw
+    this.max_upper_knuckle_bend = 0.15;
 
     this.end_effector_offset = 0.4;
     this.end_effector_node_scale = 0.1;
@@ -21,7 +23,9 @@ export const Articulated_Human = class Articulated_Human {
     this.claw_node = new Node(
       "claw",
       sphere_shape,
-      Mat4.scale(claw_scale, claw_scale, claw_scale).post_multiply(claw_transform)
+      Mat4.scale(claw_scale, claw_scale, claw_scale).post_multiply(
+        claw_transform
+      )
     ); // No shape for root
 
     const root_location = Mat4.translation(0, 1, 0);
@@ -120,7 +124,7 @@ export const Articulated_Human = class Articulated_Human {
       fingertip1_local_pos
     );
     this.fingertip_1.end_effector = this.end_effector_1;
-    this.end_effectors.push(this.end_effector_1)
+    this.end_effectors.push(this.end_effector_1);
 
     // #endregion
 
@@ -179,7 +183,7 @@ export const Articulated_Human = class Articulated_Human {
     middle_knuckle2.set_dof(false, false, false, true, false, false); // Enable rotation
 
     this.fingers.push({ knuckle: upper_knuckle2 });
-    
+
     let fingertip_node_transform_2 = Mat4.scale(0.1, 0.1, 0.1).pre_multiply(
       Mat4.translation(0, 0, -1 * this.scale * this.end_effector_offset)
     );
@@ -204,7 +208,7 @@ export const Articulated_Human = class Articulated_Human {
       fingertip2_local_pos
     );
     this.fingertip_2.end_effector = this.end_effector_2;
-    this.end_effectors.push(this.end_effector_2)
+    this.end_effectors.push(this.end_effector_2);
     // #endregion
 
     // #region Finger 3
@@ -284,7 +288,7 @@ export const Articulated_Human = class Articulated_Human {
       this.fingertip_3,
       fingertip3_local_pos
     );
-    this.end_effectors.push(this.end_effector_3)
+    this.end_effectors.push(this.end_effector_3);
     this.fingertip_3.end_effector = this.end_effector_3;
 
     // #endregion
@@ -365,7 +369,7 @@ export const Articulated_Human = class Articulated_Human {
       this.fingertip_4,
       fingertip4_local_pos
     );
-    this.end_effectors.push(this.end_effector_4)
+    this.end_effectors.push(this.end_effector_4);
     this.fingertip_4.end_effector = this.end_effector_4;
 
     // #endregion
@@ -398,7 +402,6 @@ export const Articulated_Human = class Articulated_Human {
       thetaIndex += 1;
     }
   }
-
   // Cross product of 3D vectors.
   cross_product(a, b) {
     return [
@@ -408,9 +411,9 @@ export const Articulated_Human = class Articulated_Human {
     ];
   }
   get_end_effector_positions() {
-    this.matrix_stack = []
+    this.matrix_stack = [];
     this._rec_update(this.root, Mat4.identity());
-    return this.end_effectors.map((v) => v.global_position)
+    return this.end_effectors.map((v) => v.global_position);
   }
   // Return the joints as a BFS traversal from the root
   get_joints_in_order() {
@@ -466,25 +469,27 @@ export const Articulated_Human = class Articulated_Human {
     }
   }
   _rec_update(arc, parent_matrix) {
-    if(arc != null) {
+    if (arc != null) {
       arc.joint_transform = parent_matrix.times(arc.location_matrix);
-      parent_matrix.post_multiply(arc.location_matrix.times(arc.articulation_matrix))
-      this.matrix_stack.push(parent_matrix.copy())
-
-
+      parent_matrix.post_multiply(
+        arc.location_matrix.times(arc.articulation_matrix)
+      );
+      this.matrix_stack.push(parent_matrix.copy());
 
       const node = arc.child_node;
-			parent_matrix.post_multiply(node.transform_matrix);
-			if (arc.end_effector) {
-				arc.end_effector.global_position = parent_matrix.times(arc.end_effector.local_position)
-			}
+      parent_matrix.post_multiply(node.transform_matrix);
+      if (arc.end_effector) {
+        arc.end_effector.global_position = parent_matrix.times(
+          arc.end_effector.local_position
+        );
+      }
 
-			parent_matrix = this.matrix_stack.pop();
-			for (const child_arc of arc.child_node.children_arcs) {
-				this.matrix_stack.push(parent_matrix.copy())
-				this._rec_update(child_arc, parent_matrix);
-				parent_matrix = this.matrix_stack.pop()
-			}
+      parent_matrix = this.matrix_stack.pop();
+      for (const child_arc of arc.child_node.children_arcs) {
+        this.matrix_stack.push(parent_matrix.copy());
+        this._rec_update(child_arc, parent_matrix);
+        parent_matrix = this.matrix_stack.pop();
+      }
     }
   }
 

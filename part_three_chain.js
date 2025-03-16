@@ -8,7 +8,7 @@ import {
   Part_two_spring_base,
   Part_two_spring,
 } from "./part_two_spring.js";
-import { Articulated_Human } from "./human.js";
+import { Claw } from "./claw.js";
 // Pull these names into this module's scope for convenience:
 const { vec3, vec4, color, Mat4, Shape, Material, Shader, Texture, Component } =
   tiny;
@@ -204,7 +204,7 @@ export const Part_three_chain_base =
       // this.curve = new Curve_Shape(null, 100);
       this.curves = [];
       this.update_scene();
-      this.human = new Articulated_Human(0.8, 0.8);
+      this.human = new Claw(0.8, 0.8);
     }
 
     render_animation(caller) {
@@ -326,97 +326,97 @@ export class Claw_Scene extends Part_three_chain_base {
     let t_step = this.t_step;
     let t_sim = 0;
     let t_next = t_sim + dt;
-    for (let i = 0; i < this.curves.length; i++) {
-      this.curves[i].draw(caller, this.uniforms);
-    }
-    for (; t_sim <= t_next; t_sim += t_step) {
-      // this.simulation_obj.update(dt);
-      this.chainSimulation.chainSim.update(t_sim);
-      this.chainSimulation.chainSim.particles[0].ext_force = vec3(0, 0, 0);
-      this.chainSimulation.chainSim.particles[0].acc = vec3(0, 0, 0);
-      this.chainSimulation.chainSim.particles[0].vel = vec3(0, 0, 0);
-    }
-    let prevPoint = this.spline[0];
-    let currPoint = this.spline[1];
-    let tangentScalingFactor = this.tangentScalingFactor;
-    if (this.t_spline >= 1) {
-      this.i_spline += 1;
-      this.t_spline = 0;
-    }
-    if (this.i_spline >= 4) {
-      this.i_spline = 0;
-    }
-    if (this.i_spline >= 0 && this.i_spline < 1) {
-      prevPoint = this.spline[0];
-      currPoint = this.spline[1];
-    }
-    if (this.i_spline >= 1 && this.i_spline < 2) {
-      prevPoint = this.spline[1];
-      currPoint = this.spline[2];
-    }
-    if (this.i_spline >= 2 && this.i_spline < 3) {
-      prevPoint = this.spline[2];
-      currPoint = this.spline[3];
-    }
-    if (this.i_spline >= 3 && this.i_spline < 4) {
-      prevPoint = this.spline[3];
-      currPoint = this.spline[4];
-    }
-    let x0 = prevPoint[0];
-    let x1 = currPoint[0];
-    let y0 = prevPoint[1];
-    let y1 = currPoint[1];
-    let z0 = prevPoint[2];
-    let z1 = currPoint[2];
-    let sx0 = prevPoint[3];
-    let sx1 = currPoint[3];
-    let sy0 = prevPoint[4];
-    let sy1 = currPoint[4];
-    let sz0 = prevPoint[5];
-    let sz1 = currPoint[5];
-    let prevx = x0;
-    let prevy = y0;
-    let prevz = z0;
-    let f1_val = this.f1(this.t_spline);
-    let f2_val = this.f2(this.t_spline);
-    let f3_val = this.f3(this.t_spline);
-    let f4_val = this.f4(this.t_spline);
-    let x =
-      f1_val * x0 +
-      f2_val * x1 +
-      f3_val * sx0 * tangentScalingFactor +
-      f4_val * sx1 * tangentScalingFactor;
-    let y =
-      f1_val * y0 +
-      f2_val * y1 +
-      f3_val * sy0 * tangentScalingFactor +
-      f4_val * sy1 * tangentScalingFactor;
-    let z =
-      f1_val * z0 +
-      f2_val * z1 +
-      f3_val * sz0 * tangentScalingFactor +
-      f4_val * sz1 * tangentScalingFactor;
-    this.chainSimulation.chainSim.particles[0].pos = vec3(x, y, z);
-    this.chainSimulation.chainSim.particles[1].pos = vec3(x, y - 0.5, z);
-    this.chainSimulation.chainSim.particles[2].pos = vec3(x, y - 1, z);
-    this.chainSimulation.chainSim.particles[3].pos = vec3(1.5 + x, y - 2, z);
-    this.chainSimulation.chainSim.particles[4].pos = vec3(
-      x - 0.75,
-      y - 2,
-      z + 1.3
-    );
-    this.chainSimulation.chainSim.particles[5].pos = vec3(
-      x - 0.75,
-      y - 2,
-      z - 1.3
-    );
-    this.t_spline += 0.005;
-    this.chainSimulation.chainSim.draw(
-      caller,
-      this.uniforms,
-      this.shapes,
-      this.materials
-    );
+    // for (let i = 0; i < this.curves.length; i++) {
+    //   this.curves[i].draw(caller, this.uniforms);
+    // }
+    // for (; t_sim <= t_next; t_sim += t_step) {
+    //   // this.simulation_obj.update(dt);
+    //   this.chainSimulation.chainSim.update(t_sim);
+    //   this.chainSimulation.chainSim.particles[0].ext_force = vec3(0, 0, 0);
+    //   this.chainSimulation.chainSim.particles[0].acc = vec3(0, 0, 0);
+    //   this.chainSimulation.chainSim.particles[0].vel = vec3(0, 0, 0);
+    // }
+    // let prevPoint = this.spline[0];
+    // let currPoint = this.spline[1];
+    // let tangentScalingFactor = this.tangentScalingFactor;
+    // if (this.t_spline >= 1) {
+    //   this.i_spline += 1;
+    //   this.t_spline = 0;
+    // }
+    // if (this.i_spline >= 4) {
+    //   this.i_spline = 0;
+    // }
+    // if (this.i_spline >= 0 && this.i_spline < 1) {
+    //   prevPoint = this.spline[0];
+    //   currPoint = this.spline[1];
+    // }
+    // if (this.i_spline >= 1 && this.i_spline < 2) {
+    //   prevPoint = this.spline[1];
+    //   currPoint = this.spline[2];
+    // }
+    // if (this.i_spline >= 2 && this.i_spline < 3) {
+    //   prevPoint = this.spline[2];
+    //   currPoint = this.spline[3];
+    // }
+    // if (this.i_spline >= 3 && this.i_spline < 4) {
+    //   prevPoint = this.spline[3];
+    //   currPoint = this.spline[4];
+    // }
+    // let x0 = prevPoint[0];
+    // let x1 = currPoint[0];
+    // let y0 = prevPoint[1];
+    // let y1 = currPoint[1];
+    // let z0 = prevPoint[2];
+    // let z1 = currPoint[2];
+    // let sx0 = prevPoint[3];
+    // let sx1 = currPoint[3];
+    // let sy0 = prevPoint[4];
+    // let sy1 = currPoint[4];
+    // let sz0 = prevPoint[5];
+    // let sz1 = currPoint[5];
+    // let prevx = x0;
+    // let prevy = y0;
+    // let prevz = z0;
+    // let f1_val = this.f1(this.t_spline);
+    // let f2_val = this.f2(this.t_spline);
+    // let f3_val = this.f3(this.t_spline);
+    // let f4_val = this.f4(this.t_spline);
+    // let x =
+    //   f1_val * x0 +
+    //   f2_val * x1 +
+    //   f3_val * sx0 * tangentScalingFactor +
+    //   f4_val * sx1 * tangentScalingFactor;
+    // let y =
+    //   f1_val * y0 +
+    //   f2_val * y1 +
+    //   f3_val * sy0 * tangentScalingFactor +
+    //   f4_val * sy1 * tangentScalingFactor;
+    // let z =
+    //   f1_val * z0 +
+    //   f2_val * z1 +
+    //   f3_val * sz0 * tangentScalingFactor +
+    //   f4_val * sz1 * tangentScalingFactor;
+    // this.chainSimulation.chainSim.particles[0].pos = vec3(x, y, z);
+    // this.chainSimulation.chainSim.particles[1].pos = vec3(x, y - 0.5, z);
+    // this.chainSimulation.chainSim.particles[2].pos = vec3(x, y - 1, z);
+    // this.chainSimulation.chainSim.particles[3].pos = vec3(1.5 + x, y - 2, z);
+    // this.chainSimulation.chainSim.particles[4].pos = vec3(
+    //   x - 0.75,
+    //   y - 2,
+    //   z + 1.3
+    // );
+    // this.chainSimulation.chainSim.particles[5].pos = vec3(
+    //   x - 0.75,
+    //   y - 2,
+    //   z - 1.3
+    // );
+    // this.t_spline += 0.005;
+    // this.chainSimulation.chainSim.draw(
+    //   caller,
+    //   this.uniforms,
+    //   this.shapes,
+    //   this.materials
+    // );
     let box_transform = Mat4.translation(5, 0.2, 0).times(
       Mat4.scale(0.2, 0.2, 0.2)
     );
@@ -508,11 +508,25 @@ export class Claw_Scene extends Part_three_chain_base {
   }
 
   debug_claw() {
-    let theta = [this.my_t, 0, this.my_t, 0, this.my_t, 0, this.my_t, 0];
+    let angle_increment = 0.05;
+    let max_angle_deg = 50;
+    let max_rad = (max_angle_deg / 360) * 2 * Math.PI;
+    if (this.my_t * angle_increment >= max_rad) {
+      return;
+    }
+    let theta = [
+      angle_increment,
+      0,
+      angle_increment,
+      0,
+      angle_increment,
+      0,
+      angle_increment,
+      0,
+    ];
     this.human.update(theta);
     let pos = this.human.get_end_effector_positions();
-    this.my_t += 0.01;
-    this.my_t2 += 0.01;
+    this.my_t += 1;
   }
 
   parse_commands() {
