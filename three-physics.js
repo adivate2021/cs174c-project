@@ -184,16 +184,17 @@ export class ChainSim {
         this.sphereGeometry = new THREE.SphereGeometry(0.2, 32, 32);
         this.sphereMaterial = new THREE.MeshPhongMaterial({ color: 0x44aaff });
         this.lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+        this.position = position
         
-        this.setupChain(position);
+        this.setupChain();
     }
     
-    setupChain(position) {
+    setupChain() {
         // Create particles
         for (let i = 0; i < 3; i++) {
             const particle = new Particle();
             particle.mass = 1;
-            particle.pos.set(position['x'], position['y'] - (0.5 * i), position['z']);
+            particle.pos.set(this.position.x, this.position.y - (0.5 * i), this.position.z);
             particle.vel.set(0, 0, 0);
             
             
@@ -211,9 +212,9 @@ export class ChainSim {
             const spring = new Spring();
             spring.particle_1 = this.chainSim.particles[i];
             spring.particle_2 = this.chainSim.particles[i+1];
-            spring.ks = 500;
-            spring.kd = 100;
-            spring.rest_length = 0.5;
+            spring.ks = 100;
+            spring.kd = 10;
+            spring.rest_length = 0.25;
             spring.valid = true;
             
             // Create a line to visualize the spring
@@ -361,22 +362,22 @@ export class ChainSim {
     reset() {
         // Reset particle positions and velocities
         for (let i = 0; i < 3; i++) {
-            this.chainSim.particles[i].pos.set(0, 5 - (0.5 * i), 0);
+            this.chainSim.particles[i].pos.set(this.position.x, this.position.y - (0.25 * i), this.position.z);
             this.chainSim.particles[i].vel.set(0, 0, 0);
             this.chainSim.particles[i].updateMesh();
         }
         
-        this.chainSim.particles[3].pos.set(1.5, 3, 0);
-        this.chainSim.particles[3].vel.set(0, 0, 0);
-        this.chainSim.particles[3].updateMesh();
+        // this.chainSim.particles[3].pos.set(1.5, 3, 0);
+        // this.chainSim.particles[3].vel.set(0, 0, 0);
+        // this.chainSim.particles[3].updateMesh();
         
-        this.chainSim.particles[4].pos.set(-0.75, 3, 1.3);
-        this.chainSim.particles[4].vel.set(0, 0, 0);
-        this.chainSim.particles[4].updateMesh();
+        // this.chainSim.particles[4].pos.set(-0.75, 3, 1.3);
+        // this.chainSim.particles[4].vel.set(0, 0, 0);
+        // this.chainSim.particles[4].updateMesh();
         
-        this.chainSim.particles[5].pos.set(-0.75, 3, -1.3);
-        this.chainSim.particles[5].vel.set(0, 0, 0);
-        this.chainSim.particles[5].updateMesh();
+        // this.chainSim.particles[5].pos.set(-0.75, 3, -1.3);
+        // this.chainSim.particles[5].vel.set(0, 0, 0);
+        // this.chainSim.particles[5].updateMesh();
         
         // Update all springs
         for (const s of this.chainSim.springs) {

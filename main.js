@@ -193,6 +193,22 @@ function createControls(scene) {
         physicsButton.style.backgroundColor = '#E91E63';
     });
     controlsContainer.appendChild(physicsButton);
+
+    // Create Lower Raise button
+    const lowerRaiseButton = document.createElement('button');
+    lowerRaiseButton.textContent = 'Lower Claw/Raise Claw';
+    lowerRaiseButton.style.backgroundColor = '#102bc2';
+    Object.assign(lowerRaiseButton.style, buttonStyle, { backgroundColor: '#102bc2' });
+    lowerRaiseButton.addEventListener('click', () => {
+        scene.lowerRaise();
+    });
+    lowerRaiseButton.addEventListener('mouseover', () => {
+        lowerRaiseButton.style.backgroundColor = '#0d2297';
+    });
+    lowerRaiseButton.addEventListener('mouseout', () => {
+        lowerRaiseButton.style.backgroundColor = '#102bc2';
+    });
+    controlsContainer.appendChild(lowerRaiseButton);
 }
 
 function loadClawMachineModel(scene) {

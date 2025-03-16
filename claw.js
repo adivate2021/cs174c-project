@@ -19,7 +19,8 @@ export class ClawScene {
     this.claw_target = new THREE.Vector3(0, 6, 0);
     this.claw_movement_t = 0;
     this.claw_movement_speed = 0.01;
-
+    this.init_claw_pos = new THREE.Vector3(0,6,0)
+    this.lowered = false
     // Clock for animation timing
     this.clock = new THREE.Clock();
     this.clock.start();
@@ -187,6 +188,7 @@ export class ClawScene {
     const pathWidth = 2.0;
     const pathDepth = 2.0;
     this.claw_position = new THREE.Vector3(clawPosition.x - pathWidth/2, roofHeight, clawPosition.z + pathDepth/2)
+    this.init_claw_pos = new THREE.Vector3(this.claw_position.x, this.claw_position.y, this.claw_position.z)
     this.chainSim = new ChainSim(this.scene, this.claw_position);
 
 
@@ -228,7 +230,7 @@ export class ClawScene {
       for (const spring of this.chainSim.chainSim.springs) {
         spring.updateLine();
       }
-      this.chainSim.update(0.01)
+      this.chainSim.update(0.03)
     }
   }
 
@@ -1098,7 +1100,7 @@ export class ClawScene {
     // Get time since last frame
     const time = this.clock.getElapsedTime();
     // const deltaTime = this.clock.getDelta();
-    const deltaTime = 0.01
+    const deltaTime = 0.02
 
     // Apply animation mixer update for skeletal animations
     if (this.mixer) {
@@ -1108,10 +1110,12 @@ export class ClawScene {
     // Update claw position along the Hermite path if animation is active
     if (this.isClawMoving) {
       // Update path parameter based on time
-      this.pathT = Math.min(this.pathT + deltaTime, 1.0);
-      if (this.pathT >= 1.0) {
-        // this.isClawMoving = false;
-        this.pathT = 0
+      if(!this.lowered){
+        this.pathT = Math.min(this.pathT + deltaTime*0.1, 1.0);
+        if (this.pathT >= 1.0) {
+          // this.isClawMoving = false;
+          this.pathT = 0
+        }
       }
 
       // Move along the path
@@ -1426,8 +1430,9 @@ export class ClawScene {
     // Reset claw position
     this.clawPath.currentCurveIndex = 0;
     this.clawPath.currentParameter = 0;
-    const pathPosition = this.clawPath.getCurrentPoint();
-    this.updateClawPosition(pathPosition);
+    // const pathPosition = this.clawPath.getCurrentPoint();
+    console.log(this.init_claw_pos)
+    this.updateClawPosition(this.init_claw_pos);
   }
 
   toggleGravity() {
@@ -1455,6 +1460,18 @@ export class ClawScene {
         this.claw_movement_speed = 0.01;
       }
     }
+  }
+
+  lowerRaise(){
+    if(this.lowered){
+      console.log("Raising Claw")
+      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].ks = 100
+    }
+    else{
+      console.log("Lowering Claw")
+      this.chainSim.chainSim.springs[this.chainSim.chainSim.springs.length-1].ks = 0
+    }
+    this.lowered = !this.lowered
   }
 
   // Calculate distance between two points
