@@ -366,10 +366,10 @@ export class ChainSim {
         }
     }
     
-    reset() {
+    reset(point=this.position) {
         // Reset particle positions and velocities
         for (let i = 0; i < 10; i++) {
-            this.chainSim.particles[i].pos.set(this.position.x, this.position.y - (0.35 * i), this.position.z);
+            this.chainSim.particles[i].pos.set(point.x, point.y - (0.35 * i), point.z);
             this.chainSim.particles[i].vel.set(0, 0, 0);
             this.chainSim.particles[i].updateMesh();
         }

@@ -64,7 +64,7 @@ export class ClawScene {
 		);
 
 		// Set initial camera position
-		this.camera.position.set(-6.5, 6, 23);
+		this.camera.position.set(-4.04, 6.16, 22.7);
 
 		// Create a WebGL renderer
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -251,7 +251,7 @@ export class ClawScene {
 				this.camera,
 				this.renderer.domElement
 			);
-			this.controls.target.set(-13, 4, 23);
+			this.controls.target.set(-13, 4, 22.3);
 			this.controls.enableDamping = true;
 			this.controls.dampingFactor = 0.25;
 			this.controls.screenSpacePanning = false;
@@ -287,6 +287,7 @@ export class ClawScene {
 		this.customClawClosed = false
 		this.customClawOpened = upperKnuckleBend === this.minAngleBend
 		this.customClawGrabbedPrize = false
+		this.inTransitToBox = false
 
 		// Create the base of the claw (the root)
 		const baseMesh = new THREE.Mesh(
@@ -1332,22 +1333,32 @@ export class ClawScene {
 			}
 
 			// Move along the path
-			if (!this.ballGrabbed) {
+			if (!this.customClawGrabbedPrize) {
 				const position = this.clawPath.getPointAt(this.pathT);
 				this.updateClawPosition(position);
 				this.updateCustomClawPosition(position);
-				console.log(this.claw_position);
 			} else {
-				const positionToReach = new THREE.Vector3(-11.9, 3.35, 24.0);
+				this.lowerRaise()
+				this.inTransitToBox = true
+				const positionToReach = new THREE.Vector3(-11.9, this.claw_position.y, 24.0);
 				const difference = positionToReach.sub(this.claw_position);
+				const length = difference.length()
 				const difference_norm = difference.normalize();
 				const position = new THREE.Vector3(0, 0, 0);
 				position.addVectors(
 					this.claw_position,
-					difference_norm.multiplyScalar(0.05)
+					difference_norm.multiplyScalar(0.01)
 				);
 				position.y = this.claw_position.y;
-				this.updateClawPosition(position);
+				if(length < 0.01) {
+					this.inTransitToBox = false
+					this.lowerRaise()
+					this.resetSimulation()
+				}
+				else {
+					this.updateCustomClawPosition(position);
+					this.updateClawPosition(position);
+				}
 			}
 
 			// Update IK if we have a target
@@ -1597,7 +1608,9 @@ export class ClawScene {
             let result = this.getCustomClawForceOnBall(toy)
             let y = this.chainSim.chainSim.particles[9].pos
             if(result.y > 5) {
+				// this.lowerRaise()
 			  this.customClawGrabbedPrize = true
+			  
               const positions = this.getCustomClawEndEffectorPositions();
               const midpoint = new THREE.Vector3();
 
@@ -1794,6 +1807,8 @@ export class ClawScene {
     this.customClawClosed = false
 	}
 	lowerRaise() {
+		if(this.inTransitToBox)
+			return
 		if (this.lowered) {
 			console.log("Raising Claw");
 			this.chainSim.chainSim.springs[
