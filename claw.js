@@ -284,10 +284,10 @@ export class ClawScene {
 		this.closingCustomClaw = false;
 		this.maxAngleBend = Math.PI / 5 - 0.05;
 		this.minAngleBend = 0.15;
-		this.customClawClosed = false
-		this.customClawOpened = upperKnuckleBend === this.minAngleBend
-		this.customClawGrabbedPrize = false
-		this.inTransitToBox = false
+		this.customClawClosed = false;
+		this.customClawOpened = upperKnuckleBend === this.minAngleBend;
+		this.customClawGrabbedPrize = false;
+		this.inTransitToBox = false;
 
 		// Create the base of the claw (the root)
 		const baseMesh = new THREE.Mesh(
@@ -380,9 +380,9 @@ export class ClawScene {
 			lowerFingerPivot.rotation.z = -lowerKnuckleBend; // adjust as needed
 
 			// Example: Create a red cube as an end effector
-			const wrist = new THREE.Group()
-			wrist.position.set(lowerFingerLength, -fingerThickness / 2, 0)
-			lowerFinger.add(wrist)
+			const wrist = new THREE.Group();
+			wrist.position.set(lowerFingerLength, -fingerThickness / 2, 0);
+			lowerFinger.add(wrist);
 			const geometry = new THREE.SphereGeometry(0.1, 16, 16);
 			const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
 			const endEffector = new THREE.Mesh(geometry, material);
@@ -392,7 +392,7 @@ export class ClawScene {
 			// 	-fingerThickness / 2,
 			// 	0
 			// );
-      wrist.add(endEffector)
+			wrist.add(endEffector);
 			this.endEffectors.push(wrist);
 
 			// Optional: add an axes helper to visualize the finger's local axes.
@@ -409,40 +409,43 @@ export class ClawScene {
 		// this.updateCustomClawPosition(new THREE.Vector3(-14.4, 3, 21.5))
 	}
 	getCustomClawEndEffectorPositions() {
-    let temp = []
-    this.endEffectors.forEach((effector) => {
-      const globalPos = new THREE.Vector3()
-      effector.getWorldPosition(globalPos)
-      temp.push(globalPos)
-    })
+		let temp = [];
+		this.endEffectors.forEach((effector) => {
+			const globalPos = new THREE.Vector3();
+			effector.getWorldPosition(globalPos);
+			temp.push(globalPos);
+		});
 		return temp;
 	}
 	getCustomClawForceOnBall(toy) {
-    let friction = 0
-    this.scene.updateMatrixWorld(true)
-    this.endEffectors.forEach(effectorGroup => {
-      const worldPos = new THREE.Vector3();
-      effectorGroup.getWorldPosition(worldPos);
-      const mesh = effectorGroup.children[0];
-      mesh.geometry.computeBoundingSphere();
-      const localBoundingSphere = mesh.geometry.boundingSphere;
-      const worldScale = new THREE.Vector3();
-      mesh.getWorldScale(worldScale);
-      const effectiveRadius = localBoundingSphere.radius * worldScale.x;
-      const effectorSphere = new THREE.Sphere(worldPos, effectiveRadius);
-      if (toy.userData.boundingSphere.intersectsSphere(effectorSphere)) {
-        console.log("Intersection detected with an end effector at:", worldPos);
-        friction += 2.45;
-      }
-    });
-    return new THREE.Vector3(0, friction, 0);
-    
-    // let friction = 0;
+		let friction = 0;
+		this.scene.updateMatrixWorld(true);
+		this.endEffectors.forEach((effectorGroup) => {
+			const worldPos = new THREE.Vector3();
+			effectorGroup.getWorldPosition(worldPos);
+			const mesh = effectorGroup.children[0];
+			mesh.geometry.computeBoundingSphere();
+			const localBoundingSphere = mesh.geometry.boundingSphere;
+			const worldScale = new THREE.Vector3();
+			mesh.getWorldScale(worldScale);
+			const effectiveRadius = localBoundingSphere.radius * worldScale.x;
+			const effectorSphere = new THREE.Sphere(worldPos, effectiveRadius);
+			if (toy.userData.boundingSphere.intersectsSphere(effectorSphere)) {
+				console.log(
+					"Intersection detected with an end effector at:",
+					worldPos
+				);
+				friction += 2.45;
+			}
+		});
+		return new THREE.Vector3(0, friction, 0);
+
+		// let friction = 0;
 		// for (let end of this.endEffectors) {
 		// 	if (toy.userData.boundingSphere.intersectsSphere(end.children[0].geometry.boundingSphere)) {
 		// 	}
 		// }
-    // return 0
+		// return 0
 	}
 	initToys() {
 		console.log("Initializing toys with direct positioning");
@@ -535,7 +538,7 @@ export class ClawScene {
 						Math.random() * 0.5, // Small upward Y velocity
 						(Math.random() - 0.5) * 2.0 // Random Z velocity
 					);
-          ball.userData.acceleration.set(0,0,0)
+					ball.userData.acceleration.set(0, 0, 0);
 				} else {
 					// Make balls immobile by default - they'll only move when grabbed
 					ball.userData.velocity.set(0, 0, 0);
@@ -1253,7 +1256,7 @@ export class ClawScene {
 			0,
 			(Math.random() - 0.5) * 0.1
 		);
-    ball.userData.acceleration = new THREE.Vector3(0,0,0)
+		ball.userData.acceleration = new THREE.Vector3(0, 0, 0);
 		ball.userData.mass = 0.8 + Math.random() * 0.4; // Slightly different masses
 		ball.userData.radius = size; // Store the radius for physics
 		ball.userData.isBall = true; // Flag to identify as a ball
@@ -1338,11 +1341,15 @@ export class ClawScene {
 				this.updateClawPosition(position);
 				this.updateCustomClawPosition(position);
 			} else {
-				this.lowerRaise()
-				this.inTransitToBox = true
-				const positionToReach = new THREE.Vector3(-11.9, this.claw_position.y, 24.0);
+				this.lowerRaise();
+				this.inTransitToBox = true;
+				const positionToReach = new THREE.Vector3(
+					-11.9,
+					this.claw_position.y,
+					24.0
+				);
 				const difference = positionToReach.sub(this.claw_position);
-				const length = difference.length()
+				const length = difference.length();
 				const difference_norm = difference.normalize();
 				const position = new THREE.Vector3(0, 0, 0);
 				position.addVectors(
@@ -1350,12 +1357,11 @@ export class ClawScene {
 					difference_norm.multiplyScalar(0.01)
 				);
 				position.y = this.claw_position.y;
-				if(length < 0.01) {
-					this.inTransitToBox = false
-					this.lowerRaise()
-					this.resetSimulation()
-				}
-				else {
+				if (length < 0.01) {
+					this.inTransitToBox = false;
+					this.lowerRaise();
+					this.resetSimulation();
+				} else {
 					this.updateCustomClawPosition(position);
 					this.updateClawPosition(position);
 				}
@@ -1386,23 +1392,21 @@ export class ClawScene {
 				this.rotateCustomClaw(-deltaTime * 2);
 			} else {
 				this.openingCustomClaw = false;
-        this.customClawOpened = true
+				this.customClawOpened = true;
 			}
-		}
-		else if (this.closingCustomClaw) {
+		} else if (this.closingCustomClaw) {
 			if (this.upperKnuckleBend <= this.maxAngleBend) {
 				this.rotateCustomClaw(deltaTime * 2);
 			} else {
 				this.closingCustomClaw = false;
-        this.customClawClosed = true
+				this.customClawClosed = true;
 			}
-
 		}
-    // if(this.customClawClosed) {
-    //   this.lowerRaise()
-    // }
+		// if(this.customClawClosed) {
+		//   this.lowerRaise()
+		// }
 
-    // }
+		// }
 		// Update particle effects for ball removal
 		this.updateRemovalEffects(deltaTime);
 
@@ -1411,7 +1415,6 @@ export class ClawScene {
 
 		// Render the scene
 		this.render();
-
 	}
 
 	updateToyPhysics(dt, time) {
@@ -1598,32 +1601,38 @@ export class ClawScene {
 			}
 		}
 
-    // Third pass - see if the claw has grabbed it
-    if(this.customClawClosed) {
-      if(this.toys && this.toys.length > 0){
-        for(let toy of this.toys) {
-          if (toy && toy.userData && toy.userData.boundingSphere && toy.userData.isBall) {
-            // toy.userData.velocity += this.getCustomClawForceOnBall(toy) / toy.userData.mass
-            
-            let result = this.getCustomClawForceOnBall(toy)
-            let y = this.chainSim.chainSim.particles[9].pos
-            if(result.y > 5) {
-				// this.lowerRaise()
-			  this.customClawGrabbedPrize = true
-			  
-              const positions = this.getCustomClawEndEffectorPositions();
-              const midpoint = new THREE.Vector3();
+		// Third pass - see if the claw has grabbed it
+		if (this.customClawClosed) {
+			if (this.toys && this.toys.length > 0) {
+				for (let toy of this.toys) {
+					if (
+						toy &&
+						toy.userData &&
+						toy.userData.boundingSphere &&
+						toy.userData.isBall
+					) {
+						// toy.userData.velocity += this.getCustomClawForceOnBall(toy) / toy.userData.mass
 
-              positions.forEach(pos => midpoint.add(pos)); // Sum all positions
-              midpoint.divideScalar(positions.length); // Average the positions
-              // toy.userData.velocity.set(0, y, 0)
-              toy.position.set(...midpoint)
-            }
-            // toy.userData.acceleration.set(result.x, result.y, result.z)
-          }
-        }
-      }
-    }
+						let result = this.getCustomClawForceOnBall(toy);
+						let y = this.chainSim.chainSim.particles[9].pos;
+						if (result.y > 5) {
+							// this.lowerRaise()
+							this.customClawGrabbedPrize = true;
+
+							const positions =
+								this.getCustomClawEndEffectorPositions();
+							const midpoint = new THREE.Vector3();
+
+							positions.forEach((pos) => midpoint.add(pos)); // Sum all positions
+							midpoint.divideScalar(positions.length); // Average the positions
+							// toy.userData.velocity.set(0, y, 0)
+							toy.position.set(...midpoint);
+						}
+						// toy.userData.acceleration.set(result.x, result.y, result.z)
+					}
+				}
+			}
+		}
 	}
 
 	// Reset a ball's position to be inside the machine
@@ -1761,7 +1770,7 @@ export class ClawScene {
 		}
 	}
 	updateCustomClawPosition(position) {
-    if (
+		if (
 			this.chainSim &&
 			this.chainSim.chainSim &&
 			this.chainSim.chainSim.particles &&
@@ -1775,7 +1784,7 @@ export class ClawScene {
 				spring.updateLine();
 			}
 			this.chainSim.update(0.03);
-      this.customClawPosition = this.chainSim.chainSim.particles[9].pos
+			this.customClawPosition = this.chainSim.chainSim.particles[9].pos;
 		}
 		this.clawNode.position.set(...this.customClawPosition);
 	}
@@ -1788,27 +1797,26 @@ export class ClawScene {
 			}
 		}
 	}
-  toggleClaw() {
-    if(this.customClawClosed) {
-      this.openCustomClaw()
-    }
-    if(this.customClawOpened) {
-      this.closeCustomClaw()
-    }
-  }
+	toggleClaw() {
+		if (this.customClawClosed) {
+			this.openCustomClaw();
+		}
+		if (this.customClawOpened) {
+			this.closeCustomClaw();
+		}
+	}
 	closeCustomClaw() {
 		this.closingCustomClaw = true;
 		this.openingCustomClaw = false;
-    this.customClawOpened = false
+		this.customClawOpened = false;
 	}
 	openCustomClaw() {
-    this.closingCustomClaw = false;
+		this.closingCustomClaw = false;
 		this.openingCustomClaw = true;
-    this.customClawClosed = false
+		this.customClawClosed = false;
 	}
 	lowerRaise() {
-		if(this.inTransitToBox)
-			return
+		if (this.inTransitToBox) return;
 		if (this.lowered) {
 			console.log("Raising Claw");
 			this.chainSim.chainSim.springs[
@@ -1818,28 +1826,27 @@ export class ClawScene {
 				this.chainSim.chainSim.springs.length - 1
 			].kd = 300;
 			// lowered and didn't grab a prize -> can open
-			if(!this.customClawGrabbedPrize) {
-				this.openCustomClaw()
+			if (!this.customClawGrabbedPrize) {
+				this.openCustomClaw();
 			}
 			this.lowered = !this.lowered;
 			this.chainSim.chainSim.lowered = this.lowered;
 		} else {
 			// if the claw is high and has a prize, there's no need to drop it -> simply open the claw
-      		if(!this.customClawGrabbedPrize) {
+			if (!this.customClawGrabbedPrize) {
 				console.log("Lowering Claw");
 				this.chainSim.chainSim.springs[
-				this.chainSim.chainSim.springs.length - 1
-					].ks = 5;
-					this.chainSim.chainSim.springs[
-				this.chainSim.chainSim.springs.length - 1
-					].kd = 10;
+					this.chainSim.chainSim.springs.length - 1
+				].ks = 5;
+				this.chainSim.chainSim.springs[
+					this.chainSim.chainSim.springs.length - 1
+				].kd = 10;
 				this.lowered = !this.lowered;
 				this.chainSim.chainSim.lowered = this.lowered;
-				this.closeCustomClaw()
-			}
-			else {
-				this.openCustomClaw()
-				this.customClawGrabbedPrize = false
+				this.closeCustomClaw();
+			} else {
+				this.openCustomClaw();
+				this.customClawGrabbedPrize = false;
 			}
 		}
 	}
