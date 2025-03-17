@@ -67,13 +67,13 @@ function init() {
     loadClawMachineModel(clawSceneInstance);
 
     //
-    const customClaw = new ClawCustom(3, 0.15);
-    customClaw.rotate(1)
-    // Set its position so that it is visible in the scene.
-    customClaw.position.set(-13, 5, 15);
-    // Add the custom claw to the scene.
-    clawSceneInstance.scene.add(customClaw);
-    console.log("Custom claw added to scene");
+    // const customClaw = new ClawCustom(3, 0.15);
+    // customClaw.rotate(1)
+    // // Set its position so that it is visible in the scene.
+    // customClaw.position.set(-13, 5, 15);
+    // // Add the custom claw to the scene.
+    // clawSceneInstance.scene.add(customClaw);
+    // console.log("Custom claw added to scene");
 
     //
 

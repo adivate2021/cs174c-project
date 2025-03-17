@@ -426,14 +426,14 @@ export class ClawScene {
       const localBoundingSphere = mesh.geometry.boundingSphere;
       const worldScale = new THREE.Vector3();
       mesh.getWorldScale(worldScale);
-      const effectiveRadius = localBoundingSphere.radius * worldScale.x + toy.userData.boundingSphere.radius;
+      const effectiveRadius = localBoundingSphere.radius * worldScale.x;
       const effectorSphere = new THREE.Sphere(worldPos, effectiveRadius);
       if (toy.userData.boundingSphere.intersectsSphere(effectorSphere)) {
         console.log("Intersection detected with an end effector at:", worldPos);
-        friction += 3.3;
+        friction += 2.45;
       }
     });
-    return new THREE.Vector3(0, friction / toy.mass, 0);
+    return new THREE.Vector3(0, friction / toy.userData.mass, 0);
     
     // let friction = 0;
 		// for (let end of this.endEffectors) {
@@ -533,7 +533,7 @@ export class ClawScene {
 						Math.random() * 0.5, // Small upward Y velocity
 						(Math.random() - 0.5) * 2.0 // Random Z velocity
 					);
-          ball.user
+          ball.userData.acceleration.set(0,0,0)
 				} else {
 					// Make balls immobile by default - they'll only move when grabbed
 					ball.userData.velocity.set(0, 0, 0);
@@ -1251,6 +1251,7 @@ export class ClawScene {
 			0,
 			(Math.random() - 0.5) * 0.1
 		);
+    ball.userData.acceleration = new THREE.Vector3(0,0,0)
 		ball.userData.mass = 0.8 + Math.random() * 0.4; // Slightly different masses
 		ball.userData.radius = size; // Store the radius for physics
 		ball.userData.isBall = true; // Flag to identify as a ball
@@ -1585,9 +1586,10 @@ export class ClawScene {
     // Third pass - see if the claw has grabbed it
     if(this.lowered && this.customClawClosed) {
       if(this.toys && this.toys.length > 0){
-        for(const toy of this.toys) {
+        for(let toy of this.toys) {
           if (toy && toy.userData && toy.userData.boundingSphere && toy.userData.isBall) {
-            // toy.acceleration += this.getCustomClawForceOnBall(toy)
+            // toy.userData.velocity += this.getCustomClawForceOnBall(toy) / toy.userData.mass
+            toy.userData.acceleration.addScaledVector(this.getCustomClawForceOnBall(toy), 1)
           }
         }
       }
@@ -1791,9 +1793,9 @@ export class ClawScene {
 			this.chainSim.chainSim.springs[
         this.chainSim.chainSim.springs.length - 1
 			].kd = 10;
+      this.toggleClaw()
 		}
 		this.lowered = !this.lowered;
-    this.toggleClaw()
 		this.chainSim.chainSim.lowered = this.lowered;
 	}
 

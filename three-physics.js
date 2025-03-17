@@ -429,7 +429,7 @@ export class BallPhysics {
             // Use full gravity for proper acceleration
             ball.userData.velocity.addScaledVector(this.gravity, dt);
         }
-        
+        ball.userData.velocity.addScaledVector(ball.userData.acceleration, dt)
         // Check velocity magnitude - if it's high, we need continuous collision detection
         const velocity = ball.userData.velocity;
         const speed = velocity.length();
