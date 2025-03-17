@@ -198,7 +198,7 @@ export class ChainSim {
         for (let i = 0; i < 10; i++) {
             const particle = new Particle();
             particle.mass = 1;
-            particle.pos.set(this.position.x, this.position.y - (0.35 * i), this.position.z);
+            particle.pos.set(this.position.x, this.position.y - (0.15 * i), this.position.z);
             particle.vel.set(0, 0, 0);
             
             
@@ -221,7 +221,7 @@ export class ChainSim {
             spring.particle_2 = this.chainSim.particles[i+1];
             spring.ks = 500;
             spring.kd = 100;
-            spring.rest_length = 0.25;
+            spring.rest_length = 0.15;
             spring.valid = true;
             
             // Create a line to visualize the spring
@@ -557,6 +557,29 @@ export class BallPhysics {
         // If the distance is less than the radius, the sphere intersects the box
         return distance < sphereRadius;
     }
+
+    spheresIntersect(sphere1, sphere2) {
+        // Ensure bounding spheres are updated
+        sphere1.geometry.computeBoundingSphere();
+        sphere2.geometry.computeBoundingSphere();
+    
+        // Get world positions
+        let pos1 = new THREE.Vector3();
+        let pos2 = new THREE.Vector3();
+        sphere1.getWorldPosition(pos1);
+        sphere2.getWorldPosition(pos2);
+    
+        // Get radii
+        let radius1 = sphere1.geometry.boundingSphere.radius * sphere1.scale.x;
+        let radius2 = sphere2.geometry.boundingSphere.radius * sphere2.scale.x;
+    
+        // Calculate distance between centers
+        let distance = pos1.distanceTo(pos2);
+    
+        // Check intersection
+        return distance <= (radius1 + radius2);
+    }
+    
     
     // Handle collision between a ball and a bounding box using a hybrid approach
     handleBoxCollision(ball, box, isGlassHole = false) {

@@ -166,7 +166,7 @@ function createControls(scene) {
     backgroundColor: "#2196F3",
   });
   openClawButton.addEventListener("click", () => {
-    scene.closeCustomClaw();
+    scene.openCustomClaw();
     console.log("Gravity toggled");
   });
   openClawButton.addEventListener("mouseover", () => {
@@ -184,7 +184,7 @@ function createControls(scene) {
     backgroundColor: "#2196F3",
   });
   closeClawButton.addEventListener("click", () => {
-    scene.openCustomClaw();
+    scene.closeCustomClaw();
     console.log("Gravity toggled");
   });
   closeClawButton.addEventListener("mouseover", () => {
