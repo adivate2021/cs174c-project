@@ -289,6 +289,7 @@ export class ClawScene {
 		this.customClawGrabbedPrize = false;
 		this.inTransitToBox = false;
 		this.customClawEndEffectorVelocity = new THREE.Vector3(0, 0,0)
+		this.fingers = []
 
 		// Create the base of the claw (the root)
 		const baseMesh = new THREE.Mesh(
@@ -342,7 +343,7 @@ export class ClawScene {
 				upperFingerGeometry,
 				fingerMaterial
 			);
-
+			this.fingers.push(upperFinger)
 			//translate by the radius of the root ball + half length of the box
 			// all translations need to be scaled by scale * 0.1 now
 			upperFinger.geometry.translate(
@@ -351,7 +352,7 @@ export class ClawScene {
 				0
 			);
 			fingerGroup.add(upperFinger);
-
+			
 			// Create a pivot for the lower finger at the tip of the upper finger.
 			const lowerFingerPivot = new THREE.Group();
 			lowerFingerPivot.position.set(
@@ -360,7 +361,7 @@ export class ClawScene {
 				0
 			);
 			upperFinger.add(lowerFingerPivot);
-
+			
 			// Create the lower finger.
 			const lowerFinger = new THREE.Mesh(
 				lowerFingerGeometry,
@@ -368,18 +369,19 @@ export class ClawScene {
 			);
 			lowerFinger.geometry.translate(
 				this.scaleValue *
-					0.1 *
-					(((lowerFingerLength * 1) / scale) * 1.25),
+				0.1 *
+				(((lowerFingerLength * 1) / scale) * 1.25),
 				-this.scaleValue *
-					0.1 *
-					(((fingerThickness * 1) / scale) * 1.25),
+				0.1 *
+				(((fingerThickness * 1) / scale) * 1.25),
 				0
 			);
+			this.fingers.push(lowerFinger)
 			lowerFingerPivot.add(lowerFinger);
-
+			
 			// Optionally, set an initial rotation for the lower finger (e.g., a 30° bend).
 			lowerFingerPivot.rotation.z = -lowerKnuckleBend; // adjust as needed
-
+			
 			// Example: Create a red cube as an end effector
 			const wrist = new THREE.Group();
 			wrist.position.set(lowerFingerLength, -fingerThickness / 2, 0);
@@ -387,8 +389,8 @@ export class ClawScene {
 			const geometry = new THREE.SphereGeometry(0.1, 16, 16);
 			const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
 			const endEffector = new THREE.Mesh(geometry, material);
-			wrist.userData.mass = 0.01
-			wrist.userData.isImmobile = true
+			wrist.userData.mass = 0.1
+			// wrist.userData.isImmobile = false
 			endEffector.visible = false
 			// endEffector.geometry.translate(
 			// 	lowerFingerLength,
@@ -1377,7 +1379,7 @@ export class ClawScene {
       const targetPos = this.clawMechanism.position
         .clone()
         .add(new THREE.Vector3(0, -2, 0));
-      this.solveIK(targetPos);
+      // this.solveIK(targetPos);
     }
 
     // Update toy physics
@@ -1491,6 +1493,9 @@ export class ClawScene {
     // First pass - handle ball-to-ball collisions
 		let positions = this.getCustomClawEndEffectorPositions()
     for (let i = 0; i < this.toys.length; i++) {
+			for(let [idx, finger] of this.fingers.entries()) {
+
+			}
 			for(let [idx, eff] of this.endEffectors.entries()) {
 				if (
             !this.toys[i].userData ||
@@ -1988,109 +1993,109 @@ export class ClawScene {
   }
 
   // Solve the inverse kinematics using the Jacobian Transpose method
-  solveIK(targetPosition) {
-		if (
-			!this.ikEnabled ||
-			this.ikJoints.length === 0 ||
-			!this.ikEndEffector
-		) {
-      return false;
-    }
+  // solveIK(targetPosition) {
+	// 	if (
+	// 		!this.ikEnabled ||
+	// 		this.ikJoints.length === 0 ||
+	// 		!this.ikEndEffector
+	// 	) {
+  //     return false;
+  //   }
 
-    // Update the visual target
-    this.ikTarget.position.copy(targetPosition);
+  //   // Update the visual target
+  //   this.ikTarget.position.copy(targetPosition);
 
-    // Get the current end effector position in world space
-    const endEffectorPosition = new THREE.Vector3();
-    this.ikEndEffector.getWorldPosition(endEffectorPosition);
+  //   // Get the current end effector position in world space
+  //   const endEffectorPosition = new THREE.Vector3();
+  //   this.ikEndEffector.getWorldPosition(endEffectorPosition);
 
-    // Calculate the error vector
-    const error = new THREE.Vector3().subVectors(
-      targetPosition,
-      endEffectorPosition
-    );
+  //   // Calculate the error vector
+  //   const error = new THREE.Vector3().subVectors(
+  //     targetPosition,
+  //     endEffectorPosition
+  //   );
 
-    // If we're already close enough, no need to solve
-    if (error.length() < IK_TOLERANCE) {
-      return true;
-    }
+  //   // If we're already close enough, no need to solve
+  //   if (error.length() < IK_TOLERANCE) {
+  //     return true;
+  //   }
 
-    // Iterate to find a solution
-    for (let iteration = 0; iteration < IK_ITERATIONS; iteration++) {
-      // For each joint, calculate how its rotation affects the end effector
-      for (let i = this.ikJoints.length - 1; i >= 0; i--) {
-        const joint = this.ikJoints[i];
-        const jointData = joint.userData.ikJoint;
+  //   // Iterate to find a solution
+  //   for (let iteration = 0; iteration < IK_ITERATIONS; iteration++) {
+  //     // For each joint, calculate how its rotation affects the end effector
+  //     for (let i = this.ikJoints.length - 1; i >= 0; i--) {
+  //       const joint = this.ikJoints[i];
+  //       const jointData = joint.userData.ikJoint;
 
-        if (!jointData || !jointData.axis) continue;
+  //       if (!jointData || !jointData.axis) continue;
 
-        // Get joint position in world space
-        const jointPosition = new THREE.Vector3();
-        joint.getWorldPosition(jointPosition);
+  //       // Get joint position in world space
+  //       const jointPosition = new THREE.Vector3();
+  //       joint.getWorldPosition(jointPosition);
 
-        // Calculate the joint axis in world space
-        const jointAxis = jointData.axis.clone();
-        joint.getWorldQuaternion(new THREE.Quaternion()).normalize();
-        jointAxis.applyQuaternion(
-          joint.getWorldQuaternion(new THREE.Quaternion())
-        );
+  //       // Calculate the joint axis in world space
+  //       const jointAxis = jointData.axis.clone();
+  //       joint.getWorldQuaternion(new THREE.Quaternion()).normalize();
+  //       jointAxis.applyQuaternion(
+  //         joint.getWorldQuaternion(new THREE.Quaternion())
+  //       );
 
-        // Calculate the lever arm (from joint to end effector)
-        const leverArm = new THREE.Vector3().subVectors(
-          endEffectorPosition,
-          jointPosition
-        );
+  //       // Calculate the lever arm (from joint to end effector)
+  //       const leverArm = new THREE.Vector3().subVectors(
+  //         endEffectorPosition,
+  //         jointPosition
+  //       );
 
-        // Calculate the cross product to find the direction of influence
-				const cross = new THREE.Vector3().crossVectors(
-					jointAxis,
-					leverArm
-				);
+  //       // Calculate the cross product to find the direction of influence
+	// 			const cross = new THREE.Vector3().crossVectors(
+	// 				jointAxis,
+	// 				leverArm
+	// 			);
 
-        // Calculate how much to rotate this joint (dot product with error)
-        let rotationAmount = cross.dot(error) * IK_DAMPING;
+  //       // Calculate how much to rotate this joint (dot product with error)
+  //       let rotationAmount = cross.dot(error) * IK_DAMPING;
 
-        // Apply joint limits
-        const currentAngle =
-          joint.rotation[this.getRotationComponent(jointData.axis)];
-        const newAngle = currentAngle + rotationAmount;
+  //       // Apply joint limits
+  //       const currentAngle =
+  //         joint.rotation[this.getRotationComponent(jointData.axis)];
+  //       const newAngle = currentAngle + rotationAmount;
 
-        if (newAngle < jointData.min) {
-          rotationAmount = jointData.min - currentAngle;
-        } else if (newAngle > jointData.max) {
-          rotationAmount = jointData.max - currentAngle;
-        }
+  //       if (newAngle < jointData.min) {
+  //         rotationAmount = jointData.min - currentAngle;
+  //       } else if (newAngle > jointData.max) {
+  //         rotationAmount = jointData.max - currentAngle;
+  //       }
 
-        // Apply the rotation
-        if (Math.abs(rotationAmount) > 0.001) {
-          // Create a rotation quaternion around the joint axis
-          const rotationQuat = new THREE.Quaternion();
-					rotationQuat.setFromAxisAngle(
-						jointData.axis,
-						rotationAmount
-					);
+  //       // Apply the rotation
+  //       if (Math.abs(rotationAmount) > 0.001) {
+  //         // Create a rotation quaternion around the joint axis
+  //         const rotationQuat = new THREE.Quaternion();
+	// 				rotationQuat.setFromAxisAngle(
+	// 					jointData.axis,
+	// 					rotationAmount
+	// 				);
 
-          // Apply the rotation to the joint
-          joint.quaternion.premultiply(rotationQuat);
-          joint.updateMatrixWorld(true);
+  //         // Apply the rotation to the joint
+  //         joint.quaternion.premultiply(rotationQuat);
+  //         joint.updateMatrixWorld(true);
 
-          // Update the end effector position after this joint's rotation
-          this.ikEndEffector.getWorldPosition(endEffectorPosition);
+  //         // Update the end effector position after this joint's rotation
+  //         this.ikEndEffector.getWorldPosition(endEffectorPosition);
 
-          // Recalculate the error
-          error.subVectors(targetPosition, endEffectorPosition);
+  //         // Recalculate the error
+  //         error.subVectors(targetPosition, endEffectorPosition);
 
-          // If we're close enough, we can stop
-          if (error.length() < IK_TOLERANCE) {
-            return true;
-          }
-        }
-      }
-    }
+  //         // If we're close enough, we can stop
+  //         if (error.length() < IK_TOLERANCE) {
+  //           return true;
+  //         }
+  //       }
+  //     }
+  //   }
 
-    // Return true if we got close enough, false otherwise
-    return error.length() < IK_TOLERANCE * 10;
-  }
+  //   // Return true if we got close enough, false otherwise
+  //   return error.length() < IK_TOLERANCE * 10;
+  // }
 
   // Helper to determine which rotation component to use based on axis
   getRotationComponent(axis) {
