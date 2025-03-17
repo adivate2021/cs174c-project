@@ -401,20 +401,24 @@ export class ChainSim {
 export class BallPhysics {
     constructor() {
         // Physics constants
-        this.gravity = new THREE.Vector3(0, -9.8, 0);
+        this.gravity = new THREE.Vector3(0, -16.8, 0);
         this.isGravityEnabled = true;
-        this.damping = 0.985; // Less damping for more natural movement
+        this.damping = 0.98; // Less damping for more natural movement
         
         // Spring-damper constants for wall collisions - moderate values
         this.wallSpringConstant = 40.0;  // Spring stiffness
-        this.wallDampingConstant = 4.0;  // Moderate damping
+        this.wallDampingConstant = 8.0;  // Moderate damping
         
         // Spring-damper constants for ball-ball collisions
         this.ballSpringConstant = 30.0;  // Spring stiffness
         this.ballDampingConstant = 3.0;  // Moderate damping
         
         // Time step for simulation
-        this.dt = 0.016; // 60 FPS
+        this.dt = 0.008; // 60 FPS
+        
+        // Velocity threshold for resting state
+        this.restVelocityThreshold = 0.1; // Velocity magnitude below which objects come to rest
+        this.slowMovingThreshold = 0.5;   // Threshold for reducing restitution coefficient
     }
     
     // Update physics for a ball with continuous collision detection for fast-moving objects
@@ -490,6 +494,19 @@ export class BallPhysics {
         // Set current position to start position
         ball.position.copy(startPosition);
         
+        // Keep track of all colliders to check
+        const colliders = [];
+        
+        // Add main bounding box if it exists
+        if (ball._lastCollider && ball._lastCollider.box) {
+            colliders.push({ type: 'box', box: ball._lastCollider.box });
+        }
+        
+        // Add glass box if it exists
+        if (ball._glassBox) {
+            colliders.push({ type: 'glass', box: ball._glassBox });
+        }
+        
         // Use ray casting to check for collisions along the path
         while (remainingDistance > 0.001 && iterations < maxIterations) {
             iterations++;
@@ -502,13 +519,28 @@ export class BallPhysics {
             // Now check for collisions at this position and resolve if needed
             let collided = false;
             
-            // Handle collision with main bounds if passed in
-            if (ball._lastCollider && ball._lastCollider.box) {
-                const box = ball._lastCollider.box;
+            // Check against all colliders
+            for (const collider of colliders) {
+                const box = collider.box;
                 
                 // Simple sphere-box collision test
                 if (this.sphereIntersectsBox(ball.position, radius, box)) {
                     collided = true;
+                    
+                    // For glass box, only collide if not at the top opening
+                    if (collider.type === 'glass') {
+                        // Find closest point on box to determine if we're at the top
+                        const closestPoint = new THREE.Vector3();
+                        closestPoint.x = Math.max(box.min.x, Math.min(ball.position.x, box.max.x));
+                        closestPoint.y = Math.max(box.min.y, Math.min(ball.position.y, box.max.y));
+                        closestPoint.z = Math.max(box.min.z, Math.min(ball.position.z, box.max.z));
+                        
+                        // If at the top of the glass box, allow movement (this is the opening)
+                        if (closestPoint.y === box.max.y) {
+                            collided = false;
+                            continue;
+                        }
+                    }
                     
                     // Find the closest point on the box to the sphere center
                     const closestPoint = new THREE.Vector3();
@@ -521,13 +553,17 @@ export class BallPhysics {
                     const penetrationDepth = radius - ball.position.distanceTo(closestPoint);
                     
                     if (penetrationDepth > 0) {
-                        // Move the ball out of the box along penetration direction
-                        ball.position.addScaledVector(penetrationDir, penetrationDepth + 0.001);
+                        // Move the ball out of the box along penetration direction with extra buffer
+                        ball.position.addScaledVector(penetrationDir, penetrationDepth + 0.002);
                         
-                        // Reflect velocity along penetration direction
-                        const bounceCoef = 0.7;
+                        // Reflect velocity along penetration direction using adaptive restitution
+                        const speedAlongNormal = Math.abs(velocity.dot(penetrationDir));
+                        const bounceCoef = this.calculateAdaptiveRestitution(speedAlongNormal);
                         const dot = velocity.dot(penetrationDir);
                         velocity.addScaledVector(penetrationDir, -2 * dot * bounceCoef);
+                        
+                        // Apply friction after collision
+                        this.applyFriction(velocity, penetrationDir, ball.userData.mass || 1);
                         
                         // Update remaining distance based on reflection
                         remainingDistance = 0; // Stop movement for this frame after collision
@@ -585,6 +621,11 @@ export class BallPhysics {
     handleBoxCollision(ball, box, isGlassHole = false) {
         if (!ball.userData.boundingSphere) return;
         
+        // Register this box as a last collider for continuous collision detection
+        if (!isGlassHole) {
+            ball._lastCollider = { box };
+        }
+        
         const sphere = ball.userData.boundingSphere;
         const radius = sphere.radius;
         const position = ball.position.clone();
@@ -605,64 +646,106 @@ export class BallPhysics {
         if (position.x - radius < box.min.x) {
             hasCollision = true;
             // Immediate position correction - place exactly at boundary
-            ball.position.x = box.min.x + radius;
-            // Reverse velocity component with damping
-            const bounceCoef = 0.7; // Coefficient of restitution
+            ball.position.x = box.min.x + radius + 0.001; // Add small buffer to prevent recollision
+            // Reverse velocity component with adaptive damping
+            const speed = Math.abs(velocity.x);
+            const bounceCoef = this.calculateAdaptiveRestitution(speed);
             velocity.x = -velocity.x * bounceCoef;
+            
+            // Apply friction after collision
+            this.applyFriction(velocity, new THREE.Vector3(1, 0, 0), ball.userData.mass || 1);
+            
+            // Zero out velocity if it's below threshold
+            this.applyVelocityThreshold(velocity);
         }
         
         // X-max boundary
         if (position.x + radius > box.max.x) {
             hasCollision = true;
             // Immediate position correction - place exactly at boundary
-            ball.position.x = box.max.x - radius;
-            // Reverse velocity component with damping
-            const bounceCoef = 0.7; // Coefficient of restitution
+            ball.position.x = box.max.x - radius - 0.001; // Add small buffer to prevent recollision
+            // Reverse velocity component with adaptive damping
+            const speed = Math.abs(velocity.x);
+            const bounceCoef = this.calculateAdaptiveRestitution(speed);
             velocity.x = -velocity.x * bounceCoef;
+            
+            // Apply friction after collision
+            this.applyFriction(velocity, new THREE.Vector3(-1, 0, 0), ball.userData.mass || 1);
+            
+            // Zero out velocity if it's below threshold
+            this.applyVelocityThreshold(velocity);
         }
         
         // Y-min boundary (floor)
         if (position.y - radius < box.min.y) {
             hasCollision = true;
             // Immediate position correction - place exactly at boundary
-            ball.position.y = box.min.y + radius;
-            // Reverse velocity component with damping
-            const bounceCoef = 0.7; // Coefficient of restitution
+            ball.position.y = box.min.y + radius + 0.001; // Add small buffer to prevent recollision
+            // Reverse velocity component with adaptive damping
+            const speed = Math.abs(velocity.y);
+            const bounceCoef = this.calculateAdaptiveRestitution(speed);
             velocity.y = -velocity.y * bounceCoef;
             
             // Apply additional drag to balls on the floor
             velocity.x *= 0.95;
             velocity.z *= 0.95;
+            
+            // Apply friction after collision with floor
+            this.applyFriction(velocity, new THREE.Vector3(0, 1, 0), ball.userData.mass || 1, 0.3);
+            
+            // Zero out velocity if it's below threshold
+            this.applyVelocityThreshold(velocity);
         }
         
         // Y-max boundary (ceiling)
         if (position.y + radius > box.max.y) {
             hasCollision = true;
             // Immediate position correction - place exactly at boundary
-            ball.position.y = box.max.y - radius;
-            // Reverse velocity component with damping
-            const bounceCoef = 0.7; // Coefficient of restitution
+            ball.position.y = box.max.y - radius - 0.001; // Add small buffer to prevent recollision
+            // Reverse velocity component with adaptive damping
+            const speed = Math.abs(velocity.y);
+            const bounceCoef = this.calculateAdaptiveRestitution(speed);
             velocity.y = -velocity.y * bounceCoef;
+            
+            // Apply friction after collision
+            this.applyFriction(velocity, new THREE.Vector3(0, -1, 0), ball.userData.mass || 1);
+            
+            // Zero out velocity if it's below threshold
+            this.applyVelocityThreshold(velocity);
         }
         
         // Z-min boundary
         if (position.z - radius < box.min.z) {
             hasCollision = true;
             // Immediate position correction - place exactly at boundary
-            ball.position.z = box.min.z + radius;
-            // Reverse velocity component with damping
-            const bounceCoef = 0.7; // Coefficient of restitution
+            ball.position.z = box.min.z + radius + 0.001; // Add small buffer to prevent recollision
+            // Reverse velocity component with adaptive damping
+            const speed = Math.abs(velocity.z);
+            const bounceCoef = this.calculateAdaptiveRestitution(speed);
             velocity.z = -velocity.z * bounceCoef;
+            
+            // Apply friction after collision
+            this.applyFriction(velocity, new THREE.Vector3(0, 0, 1), ball.userData.mass || 1);
+            
+            // Zero out velocity if it's below threshold
+            this.applyVelocityThreshold(velocity);
         }
         
         // Z-max boundary
         if (position.z + radius > box.max.z) {
             hasCollision = true;
             // Immediate position correction - place exactly at boundary
-            ball.position.z = box.max.z - radius;
-            // Reverse velocity component with damping
-            const bounceCoef = 0.7; // Coefficient of restitution
+            ball.position.z = box.max.z - radius - 0.001; // Add small buffer to prevent recollision
+            // Reverse velocity component with adaptive damping
+            const speed = Math.abs(velocity.z);
+            const bounceCoef = this.calculateAdaptiveRestitution(speed);
             velocity.z = -velocity.z * bounceCoef;
+            
+            // Apply friction after collision
+            this.applyFriction(velocity, new THREE.Vector3(0, 0, -1), ball.userData.mass || 1);
+            
+            // Zero out velocity if it's below threshold
+            this.applyVelocityThreshold(velocity);
         }
         
         // If there was a collision, add some additional damping
@@ -681,6 +764,9 @@ export class BallPhysics {
     handleGlassHoleCollision(ball, glassBox) {
         if (!ball.userData.boundingSphere) return false;
         
+        // Register this glass box as a collider for continuous collision detection
+        ball._glassBox = glassBox;
+        
         const sphere = ball.userData.boundingSphere;
         const radius = sphere.radius;
         const position = ball.position.clone();
@@ -697,7 +783,7 @@ export class BallPhysics {
             closestPoint.y = Math.max(glassBox.min.y, Math.min(ball.position.y, glassBox.max.y));
             closestPoint.z = Math.max(glassBox.min.z, Math.min(ball.position.z, glassBox.max.z));
             
-            if(closestPoint.y = glassBox.max.y) {
+            if(closestPoint.y === glassBox.max.y) {
                 return false
             }
             // Calculate penetration direction and depth
@@ -705,8 +791,8 @@ export class BallPhysics {
             const penetrationDepth = radius - ball.position.distanceTo(closestPoint);
             
             if (penetrationDepth > 0) {
-                // Move the ball out of the box along penetration direction
-                ball.position.addScaledVector(penetrationDir, penetrationDepth + 0.001);
+                // Move the ball out of the box along penetration direction with extra buffer
+                ball.position.addScaledVector(penetrationDir, penetrationDepth + 0.002);
                 
                 // Update sphere position
                 sphere.center.copy(ball.position);
@@ -716,6 +802,11 @@ export class BallPhysics {
                 
                 // Calculate damping force based on velocity component into wall
                 const velocityAlongNormal = velocity.dot(penetrationDir);
+                
+                // Get velocity magnitude for adaptive restitution
+                const speedAlongNormal = Math.abs(velocityAlongNormal);
+                const restitution = this.calculateAdaptiveRestitution(speedAlongNormal);
+                
                 const dampingForce = Math.max(0, velocityAlongNormal) * this.wallDampingConstant;
                 
                 // Calculate total force
@@ -724,27 +815,17 @@ export class BallPhysics {
                 // Calculate acceleration
                 const acceleration = totalForce / (ball.userData.mass || 1);
                 
-                // Apply impulse along penetration direction
-                velocity.addScaledVector(penetrationDir, -acceleration * this.dt);
+                // Apply impulse along penetration direction with adaptive restitution
+                velocity.addScaledVector(penetrationDir, -acceleration * this.dt * restitution);
                 
                 // Apply friction along tangential components
-                // Create a basis with penetrationDir as one axis
-                const tangent1 = new THREE.Vector3();
-                const tangent2 = new THREE.Vector3();
-                
-                // Find perpendicular vectors to the normal
-                if (Math.abs(penetrationDir.x) < Math.abs(penetrationDir.y)) {
-                    tangent1.set(1, 0, 0).sub(penetrationDir.clone().multiplyScalar(penetrationDir.x)).normalize();
-                } else {
-                    tangent1.set(0, 1, 0).sub(penetrationDir.clone().multiplyScalar(penetrationDir.y)).normalize();
-                }
-                tangent2.crossVectors(penetrationDir, tangent1).normalize();
-                
-                // Apply friction to the tangential components
-                //this.applyFriction(velocity, penetrationDir, ball.userData.mass || 1);
+                this.applyFriction(velocity, penetrationDir, ball.userData.mass || 1);
                 
                 // Apply additional damping for stability
                 velocity.multiplyScalar(0.98);
+                
+                // Zero out velocity if below threshold
+                this.applyVelocityThreshold(velocity);
             }
         }
         
@@ -882,8 +963,8 @@ export class BallPhysics {
             // If balls are exactly overlapping, separate them slightly
             if (distance < 0.001) {
                 // Add small random offset to prevent perfect overlap
-                ball2.position.x += 0.01 + Math.random() * 0.02;
-                ball2.position.z += 0.01 + Math.random() * 0.02;
+                ball2.position.x += 0.01 + Math.random() * 0.01;
+                ball2.position.z += 0.01 + Math.random() * 0.01;
                 return; // Skip this frame and handle next frame after separation
             }
             
@@ -903,19 +984,19 @@ export class BallPhysics {
                 return;
             } else if (isImmobile1) {
                 // Ball1 is immobile, so move only ball2
-                ball2.position.addScaledVector(normal, -penetration);
+                ball2.position.addScaledVector(normal, -(penetration + 0.002)); // Add extra buffer
             } else if (isImmobile2) {
                 // Ball2 is immobile, so move only ball1
-                ball1.position.addScaledVector(normal, penetration);
+                ball1.position.addScaledVector(normal, penetration + 0.002); // Add extra buffer
             } else {
                 // Both are mobile - use standard physics-based separation
                 const totalMass = ball1.userData.mass + ball2.userData.mass;
                 const ratio1 = ball2.userData.mass / totalMass;
                 const ratio2 = ball1.userData.mass / totalMass;
                 
-                // Move balls apart proportional to their masses
-                ball1.position.addScaledVector(normal, penetration * ratio1);
-                ball2.position.addScaledVector(normal, -penetration * ratio2);
+                // Move balls apart proportional to their masses with extra buffer
+                ball1.position.addScaledVector(normal, (penetration + 0.002) * ratio1);
+                ball2.position.addScaledVector(normal, -(penetration + 0.002) * ratio2);
             }
             
             // Update the spheres to match the new positions
@@ -926,6 +1007,9 @@ export class BallPhysics {
             const v1 = ball1.userData.velocity;
             const v2 = ball2.userData.velocity;
             const relativeVelocity = new THREE.Vector3().subVectors(v1, v2);
+            
+            // Get relative velocity magnitude for adaptive restitution
+            const relVelocityMagnitude = relativeVelocity.length();
             
             // Check if balls are separating (moving away from each other)
             // If so, we don't need to apply impulse, reduce computational load
@@ -940,19 +1024,29 @@ export class BallPhysics {
             } else if (isImmobile1) {
                 // Only ball1 is immobile - reflect ball2's velocity
                 const dotProduct = v2.dot(normal);
-                v2.addScaledVector(normal, -2 * dotProduct);
+                // Use adaptive restitution based on collision speed
+                const restitution = this.calculateAdaptiveRestitution(Math.abs(dotProduct));
+                v2.addScaledVector(normal, -2 * dotProduct * restitution);
                 // Apply damping after reflection
                 v2.multiplyScalar(0.7); // More damping for collision with immobile object
+                
+                // Zero out velocity if below threshold
+                this.applyVelocityThreshold(v2);
             } else if (isImmobile2) {
                 // Only ball2 is immobile - reflect ball1's velocity
                 const dotProduct = v1.dot(normal);
-                v1.addScaledVector(normal, -2 * dotProduct);
+                // Use adaptive restitution based on collision speed
+                const restitution = this.calculateAdaptiveRestitution(Math.abs(dotProduct));
+                v1.addScaledVector(normal, -2 * dotProduct * restitution);
                 // Apply damping after reflection
                 v1.multiplyScalar(0.7); // More damping for collision with immobile object
+                
+                // Zero out velocity if below threshold
+                this.applyVelocityThreshold(v1);
             } else {
-                // Both are mobile - use conservation of momentum
-                // Calculate coefficient of restitution (bounciness)
-                const restitution = 0.7;
+                // Both are mobile - use conservation of momentum with adaptive restitution
+                // Calculate coefficient of restitution (bounciness) based on relative velocity
+                const restitution = this.calculateAdaptiveRestitution(relVelocityMagnitude);
                 
                 // Calculate impulse scalar
                 const impulseScalar = -(1 + restitution) * relativeVelocity.dot(normal) / 
@@ -962,17 +1056,26 @@ export class BallPhysics {
                 const impulse = normal.clone().multiplyScalar(impulseScalar);
                 v1.addScaledVector(impulse, 1/ball1.userData.mass);
                 v2.addScaledVector(impulse, -1/ball2.userData.mass);
+                
+                // Apply friction after collision
+                this.applyFriction(v1, normal, ball1.userData.mass || 1);
+                this.applyFriction(v2, normal.clone().negate(), ball2.userData.mass || 1);
+                
+                // Zero out velocities if below threshold
+                this.applyVelocityThreshold(v1);
+                this.applyVelocityThreshold(v2);
             }
             
             // Add a small amount of randomness to prevent balls from getting stuck
-            if (Math.abs(v1.y) < 0.1 && Math.abs(v2.y) < 0.1) {
+            // but only if they're already moving very slowly
+            if (Math.abs(v1.y) < 0.15 && Math.abs(v2.y) < 0.15) {
                 // If both balls have very low vertical velocity (likely at rest)
-                const smallRandom = 0.05;
-                if (!isImmobile1) {
+                const smallRandom = 0.03; // Reduced randomness
+                if (!isImmobile1 && !this.applyVelocityThreshold(v1)) {
                     v1.x += (Math.random() - 0.5) * smallRandom;
                     v1.z += (Math.random() - 0.5) * smallRandom;
                 }
-                if (!isImmobile2) {
+                if (!isImmobile2 && !this.applyVelocityThreshold(v2)) {
                     v2.x += (Math.random() - 0.5) * smallRandom;
                     v2.z += (Math.random() - 0.5) * smallRandom;
                 }
@@ -1005,7 +1108,69 @@ export class BallPhysics {
         this.isGravityEnabled = !this.isGravityEnabled;
         return this.isGravityEnabled;
     }
+
+    // Apply friction to velocity along tangential components
+    applyFriction(velocity, normal, mass, frictionCoefficient = 0.15) {
+        // Get velocity magnitude
+        const speed = velocity.length();
+        
+        // If barely moving, don't bother with friction calculations
+        if (speed < 0.01) return;
+        
+        // Calculate normal component of velocity (dot product)
+        const normalComponent = velocity.clone().projectOnVector(normal);
+        
+        // Calculate tangential component (total - normal)
+        const tangentialComponent = velocity.clone().sub(normalComponent);
+        const tangentialMagnitude = tangentialComponent.length();
+        
+        // If no tangential movement, no friction to apply
+        if (tangentialMagnitude < 0.001) return;
+        
+        // Calculate friction force magnitude (limited by available tangential velocity)
+        const frictionMagnitude = Math.min(
+            frictionCoefficient * normalComponent.length(), 
+            tangentialMagnitude
+        );
+        
+        // Apply friction in opposite direction of tangential movement
+        if (frictionMagnitude > 0) {
+            const frictionDirection = tangentialComponent.clone().normalize();
+            velocity.sub(frictionDirection.multiplyScalar(frictionMagnitude));
+        }
+    }
+
+    // Calculate adaptive restitution based on relative velocity magnitude
+    calculateAdaptiveRestitution(relativeVelocityMagnitude) {
+        const baseRestitution = 0.7; // Base restitution coefficient
+        
+        // For very slow movements, significantly reduce restitution
+        if (relativeVelocityMagnitude < this.restVelocityThreshold) {
+            return 0.1; // Almost no bounce for very slow collisions
+        } 
+        // For slow movements, linearly reduce restitution
+        else if (relativeVelocityMagnitude < this.slowMovingThreshold) {
+            // Lerp between 0.1 and baseRestitution based on velocity
+            return 0.1 + (baseRestitution - 0.1) * (relativeVelocityMagnitude - this.restVelocityThreshold) / 
+                (this.slowMovingThreshold - this.restVelocityThreshold);
+        }
+        
+        // Normal restitution for faster movements
+        return baseRestitution;
+    }
+    
+    // Set velocity to zero if below threshold to prevent balls from jittering forever
+    applyVelocityThreshold(velocity) {
+        const speedSquared = velocity.lengthSq();
+        if (speedSquared < this.restVelocityThreshold * this.restVelocityThreshold) {
+            velocity.set(0, 0, 0);
+            return true; // Returns true if velocity was zeroed
+        }
+        return false; // Returns false if velocity remained unchanged
+    }
 }
+
+
 
 // Bounding box collider for efficient collision detection
 export class BoundingBoxCollider {

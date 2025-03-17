@@ -460,29 +460,45 @@ export class ClawScene {
     const stableY = 2.9; // Just above the floor level
     const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
 
-    // Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
-    const ballAbsolutePositions = [
-      [stableX, stableY, stableZ], // Row 1, Col 1
-      [stableX, stableY, stableZ + 0.7], // Row 1, Col 2
-      [stableX, stableY, stableZ + 1.4], // Row 1, Col 3
-      [stableX + 0.7, stableY, stableZ], // Row 2, Col 1
-      [stableX + 0.7, stableY, stableZ + 0.7], // Row 2, Col 2
-      [stableX + 0.7, stableY, stableZ + 1.4], // Row 2, Col 3
-      [stableX + 1.4, stableY, stableZ], // Row 3, Col 1
-      [stableX + 1.4, stableY, stableZ + 0.7], // Row 3, Col 2
-    ];
-
-    // Vibrant colors for the balls
-    const ballColors = [
-      0xff0000, // Bright red
-      0x00ff00, // Bright green
-      0x0000ff, // Bright blue
-      0xffff00, // Bright yellow
-      0xff00ff, // Bright magenta
-      0x00ffff, // Cyan
-      0xff8000, // Orange
-      0x8000ff, // Purple
-    ];
+        // Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
+        const ballAbsolutePositions = [
+          [stableX, stableY, stableZ], // Row 1, Col 1
+          [stableX, stableY, stableZ + 0.7], // Row 1, Col 2
+          [stableX, stableY, stableZ + 1.4], // Row 1, Col 3
+          [stableX + 0.7, stableY, stableZ], // Row 2, Col 1
+          [stableX + 0.7, stableY, stableZ + 0.7], // Row 2, Col 2
+          [stableX + 0.7, stableY, stableZ + 1.4], // Row 2, Col 3
+          [stableX + 1.4, stableY, stableZ], // Row 3, Col 1
+          [stableX + 1.4, stableY, stableZ + 0.7], // Row 3, Col 2
+          [stableX, stableY + 0.5, stableZ], // Row 1, Col 1
+          [stableX, stableY + 0.5, stableZ + 0.7], // Row 1, Col 2
+          [stableX, stableY + 0.5, stableZ + 1.4], // Row 1, Col 3
+          [stableX + 0.7, stableY + 0.5, stableZ], // Row 2, Col 1
+          [stableX + 0.7, stableY + 0.5, stableZ + 0.7], // Row 2, Col 2
+          [stableX + 0.7, stableY + 0.5, stableZ + 1.4], // Row 2, Col 3
+          [stableX + 1.4, stableY + 0.5, stableZ], // Row 3, Col 1
+          [stableX + 1.4, stableY + 0.5, stableZ + 0.7], // Row 3, Col 2
+          [stableX, stableY + 1.0, stableZ], // Row 1, Col 1
+          [stableX, stableY + 1.0, stableZ + 0.7], // Row 1, Col 2
+          [stableX, stableY + 1.0, stableZ + 1.4], // Row 1, Col 3
+          [stableX + 0.7, stableY + 1.0, stableZ], // Row 2, Col 1
+          [stableX + 0.7, stableY + 1.0, stableZ + 0.7], // Row 2, Col 2
+          [stableX + 0.7, stableY + 1.0, stableZ + 1.4], // Row 2, Col 3
+          [stableX + 1.4, stableY + 1.0, stableZ], // Row 3, Col 1
+          [stableX + 1.4, stableY + 1.0, stableZ + 0.7], // Row 3, Col 2
+          [stableX, stableY + 1.5, stableZ], // Row 1, Col 1
+          [stableX, stableY + 1.5, stableZ + 0.7], // Row 1, Col 2
+          [stableX, stableY + 1.5, stableZ + 1.4], // Row 1, Col 3
+          [stableX + 0.7, stableY + 1.5, stableZ], // Row 2, Col 1
+          [stableX + 0.7, stableY + 1.5, stableZ + 0.7], // Row 2, Col 2
+          [stableX + 0.7, stableY + 1.5, stableZ + 1.4], // Row 2, Col 3
+          [stableX + 1.4, stableY + 1.5, stableZ], // Row 3, Col 1
+          [stableX + 1.4, stableY + 1.5, stableZ + 0.7] // Row 3, Col 2
+        ];
+    
+        const count = ballAbsolutePositions.length;
+        // Vibrant colors for the balls
+        const ballColors = this.generateRandomColors(count);    
 
     // Ball names
     const ballNames = [
@@ -504,7 +520,7 @@ export class ClawScene {
         position,
         ballColors[i],
         ballNames[i],
-        0.25 + i * 0.03, // Slightly different sizes
+        0.25 + Math.random() * 0.05, // Slightly different sizes
         true // This is an absolute position
       );
 
@@ -530,6 +546,44 @@ export class ClawScene {
 
     return this.toys.length;
   }
+
+  generateRandomColors(size = 10) {
+    const colors = [];
+  
+    for (let i = 0; i < size; i++) {
+      // Generate random RGB values
+      let r, g, b;
+      let highChannel = false;
+      let saturation = 0;
+      
+      // For vibrant colors, ensure at least one channel is high
+      // and the overall saturation is sufficient
+      do {
+        r = Math.random();
+        g = Math.random();
+        b = Math.random();
+        
+        // Ensure at least one channel is high (> 0.7)
+        highChannel = Math.max(r, g, b) > 0.7;
+        
+        // Calculate saturation: (max-min)/max
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        saturation = max === 0 ? 0 : (max - min) / max;
+        
+        // Retry if not vibrant enough
+      } while (!(highChannel && saturation > 0.5));
+  
+      const hexColor = '#' + 
+        Math.floor(r * 255).toString(16).padStart(2, '0') + 
+        Math.floor(g * 255).toString(16).padStart(2, '0') + 
+        Math.floor(b * 255).toString(16).padStart(2, '0');
+      colors.push(hexColor);
+    }
+    
+    return colors;
+  }
+
 
   // Create a larger barrier wall to separate the glass hole area
   createLargeBarrier() {
@@ -923,22 +977,20 @@ export class ClawScene {
       // Only remove if ball is settled and fully contained
       if (
         distanceFromBottom < 0.15 &&
-        ball.position.x > this.glassHoleBounds.min.x + ball.userData.radius &&
-        ball.position.x < this.glassHoleBounds.max.x - ball.userData.radius &&
-        ball.position.z > this.glassHoleBounds.min.z + ball.userData.radius &&
-        ball.position.z < this.glassHoleBounds.max.z - ball.userData.radius
+        ( ball.position.x > this.glassHoleBounds.min.x + ball.userData.radius - 0.1 ||
+          ball.position.x > this.glassHoleBounds.min.x + ball.userData.radius + 0.1) &&
+        (ball.position.x < this.glassHoleBounds.max.x - ball.userData.radius - 0.1 ||
+          ball.position.x < this.glassHoleBounds.max.x - ball.userData.radius + 0.1) &&
+        (ball.position.z > this.glassHoleBounds.min.z + ball.userData.radius - 0.1 ||
+          ball.position.z > this.glassHoleBounds.min.z + ball.userData.radius + 0.1) &&
+        (ball.position.z < this.glassHoleBounds.max.z - ball.userData.radius - 0.1 ||
+          ball.position.z < this.glassHoleBounds.max.z - ball.userData.radius + 0.1)
       ) {
         // Get the ball's velocity magnitude
         const velocityMagnitude = ball.userData.velocity.length();
 
-        // Only remove if the ball is almost stopped (very low velocity)
-        if (velocityMagnitude < 0.1) {
-          console.log(
-            `Ball ${ball.name} is fully contained and touching bottom - removing it`
-          );
-          this.removeBall(ball);
-          return true;
-        }
+        this.removeBall(ball);
+        return true;
       }
       return true;
     }
