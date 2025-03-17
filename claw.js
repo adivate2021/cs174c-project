@@ -34,7 +34,7 @@ export class ClawScene {
 		this.initHermiteCurves();
 		this.initCameraControls();
 		this.initClawMachine();
-		this.initCustomClaw(1, 0.15, Math.PI / 3);
+		this.initCustomClaw(0.5, 0.15, Math.PI / 3);
 		this.initToys();
 		this.initInverseKinematics();
 		this.initSimulation();
@@ -64,7 +64,7 @@ export class ClawScene {
 		);
 
 		// Set initial camera position
-		this.camera.position.set(-14, 20, 30);
+		this.camera.position.set(-6.5, 6, 23);
 
 		// Create a WebGL renderer
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -251,7 +251,7 @@ export class ClawScene {
 				this.camera,
 				this.renderer.domElement
 			);
-			this.controls.target.set(-14.4, 3, 21.5);
+			this.controls.target.set(-13, 4, 23);
 			this.controls.enableDamping = true;
 			this.controls.dampingFactor = 0.25;
 			this.controls.screenSpacePanning = false;
@@ -282,10 +282,11 @@ export class ClawScene {
 		this.endEffectors = [];
 		this.openingCustomClaw = false;
 		this.closingCustomClaw = false;
-		this.maxAngleBend = Math.PI / 3;
+		this.maxAngleBend = Math.PI / 5 - 0.05;
 		this.minAngleBend = 0.15;
-    this.customClawClosed = false
-    this.customClawOpened = upperKnuckleBend === this.minAngleBend
+		this.customClawClosed = false
+		this.customClawOpened = upperKnuckleBend === this.minAngleBend
+		this.customClawGrabbedPrize = false
 
 		// Create the base of the claw (the root)
 		const baseMesh = new THREE.Mesh(
@@ -433,7 +434,7 @@ export class ClawScene {
         friction += 2.45;
       }
     });
-    return new THREE.Vector3(0, friction / toy.userData.mass, 0);
+    return new THREE.Vector3(0, friction, 0);
     
     // let friction = 0;
 		// for (let end of this.endEffectors) {
@@ -1371,7 +1372,7 @@ export class ClawScene {
 		if (this.openingCustomClaw) {
 			if (this.minAngleBend <= this.upperKnuckleBend) {
 				console.log("upper knuckle bend: ", this.upperKnuckleBend);
-				this.rotateCustomClaw(-deltaTime * 0.5);
+				this.rotateCustomClaw(-deltaTime * 2);
 			} else {
 				this.openingCustomClaw = false;
         this.customClawOpened = true
@@ -1379,13 +1380,16 @@ export class ClawScene {
 		}
 		else if (this.closingCustomClaw) {
 			if (this.upperKnuckleBend <= this.maxAngleBend) {
-				this.rotateCustomClaw(deltaTime * 0.5);
+				this.rotateCustomClaw(deltaTime * 2);
 			} else {
 				this.closingCustomClaw = false;
         this.customClawClosed = true
 			}
 
 		}
+    // if(this.customClawClosed) {
+    //   this.lowerRaise()
+    // }
 
     // }
 		// Update particle effects for ball removal
@@ -1584,12 +1588,25 @@ export class ClawScene {
 		}
 
     // Third pass - see if the claw has grabbed it
-    if(this.lowered && this.customClawClosed) {
+    if(this.customClawClosed) {
       if(this.toys && this.toys.length > 0){
         for(let toy of this.toys) {
           if (toy && toy.userData && toy.userData.boundingSphere && toy.userData.isBall) {
             // toy.userData.velocity += this.getCustomClawForceOnBall(toy) / toy.userData.mass
-            toy.userData.acceleration.addScaledVector(this.getCustomClawForceOnBall(toy), 1)
+            
+            let result = this.getCustomClawForceOnBall(toy)
+            let y = this.chainSim.chainSim.particles[9].pos
+            if(result.y > 5) {
+			  this.customClawGrabbedPrize = true
+              const positions = this.getCustomClawEndEffectorPositions();
+              const midpoint = new THREE.Vector3();
+
+              positions.forEach(pos => midpoint.add(pos)); // Sum all positions
+              midpoint.divideScalar(positions.length); // Average the positions
+              // toy.userData.velocity.set(0, y, 0)
+              toy.position.set(...midpoint)
+            }
+            // toy.userData.acceleration.set(result.x, result.y, result.z)
           }
         }
       }
@@ -1785,18 +1802,31 @@ export class ClawScene {
 			this.chainSim.chainSim.springs[
 				this.chainSim.chainSim.springs.length - 1
 			].kd = 300;
+			// lowered and didn't grab a prize -> can open
+			if(!this.customClawGrabbedPrize) {
+				this.openCustomClaw()
+			}
+			this.lowered = !this.lowered;
+			this.chainSim.chainSim.lowered = this.lowered;
 		} else {
-      console.log("Lowering Claw");
-			this.chainSim.chainSim.springs[
-        this.chainSim.chainSim.springs.length - 1
-			].ks = 15;
-			this.chainSim.chainSim.springs[
-        this.chainSim.chainSim.springs.length - 1
-			].kd = 10;
-      this.toggleClaw()
+			// if the claw is high and has a prize, there's no need to drop it -> simply open the claw
+      		if(!this.customClawGrabbedPrize) {
+				console.log("Lowering Claw");
+				this.chainSim.chainSim.springs[
+				this.chainSim.chainSim.springs.length - 1
+					].ks = 5;
+					this.chainSim.chainSim.springs[
+				this.chainSim.chainSim.springs.length - 1
+					].kd = 10;
+				this.lowered = !this.lowered;
+				this.chainSim.chainSim.lowered = this.lowered;
+				this.closeCustomClaw()
+			}
+			else {
+				this.openCustomClaw()
+				this.customClawGrabbedPrize = false
+			}
 		}
-		this.lowered = !this.lowered;
-		this.chainSim.chainSim.lowered = this.lowered;
 	}
 
 	// Calculate distance between two points

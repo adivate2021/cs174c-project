@@ -198,7 +198,7 @@ export class ChainSim {
         for (let i = 0; i < 10; i++) {
             const particle = new Particle();
             particle.mass = 1;
-            particle.pos.set(this.position.x, this.position.y - (0.15 * i), this.position.z);
+            particle.pos.set(this.position.x, this.position.y - (0.2 * i), this.position.z);
             particle.vel.set(0, 0, 0);
             
             
@@ -221,7 +221,7 @@ export class ChainSim {
             spring.particle_2 = this.chainSim.particles[i+1];
             spring.ks = 500;
             spring.kd = 100;
-            spring.rest_length = 0.15;
+            spring.rest_length = 0.2;
             spring.valid = true;
             
             // Create a line to visualize the spring
@@ -429,7 +429,7 @@ export class BallPhysics {
             // Use full gravity for proper acceleration
             ball.userData.velocity.addScaledVector(this.gravity, dt);
         }
-        ball.userData.velocity.addScaledVector(ball.userData.acceleration, dt)
+        // ball.userData.velocity.addScaledVector(ball.userData.acceleration, dt)
         // Check velocity magnitude - if it's high, we need continuous collision detection
         const velocity = ball.userData.velocity;
         const speed = velocity.length();
@@ -815,18 +815,18 @@ export class BallPhysics {
             if (position.x - radius < glassBox.min.x) {
                 hasCollision = true;
                 // Position correction
-                ball.position.x = glassBox.min.x + radius + 0.01;
-                // Reverse velocity with damping
-                velocity.x = Math.abs(velocity.x) * 0.7;
+                // ball.position.x = glassBox.min.x + radius + 0.01;
+                // // Reverse velocity with damping
+                // velocity.x = Math.abs(velocity.x) * 0.7;
             }
             
             // RIGHT wall (X-max) - only if inside already
             if (position.x + radius > glassBox.max.x) {
                 hasCollision = true;
                 // Position correction
-                ball.position.x = glassBox.max.x - radius - 0.01;
-                // Reverse velocity with damping
-                velocity.x = -Math.abs(velocity.x) * 0.7;
+                // ball.position.x = glassBox.max.x - radius - 0.01;
+                // // Reverse velocity with damping
+                // velocity.x = -Math.abs(velocity.x) * 0.7;
             }
             
             // BOTTOM wall (Y-min) - only if inside already
@@ -846,18 +846,18 @@ export class BallPhysics {
             if (position.z + radius > glassBox.max.z) {
                 hasCollision = true;
                 // Position correction
-                ball.position.z = glassBox.max.z - radius - 0.01;
-                // Reverse velocity with damping
-                velocity.z = -Math.abs(velocity.z) * 0.7;
+                // ball.position.z = glassBox.max.z - radius - 0.01;
+                // // Reverse velocity with damping
+                // velocity.z = -Math.abs(velocity.z) * 0.7;
             }
             
             // BACK wall (Z-min) - only if inside already
             if (position.z - radius < glassBox.min.z) {
                 hasCollision = true;
                 // Position correction
-                ball.position.z = glassBox.min.z + radius + 0.01;
-                // Reverse velocity with damping
-                velocity.z = Math.abs(velocity.z) * 0.7;
+                // ball.position.z = glassBox.min.z + radius + 0.01;
+                // // Reverse velocity with damping
+                // velocity.z = Math.abs(velocity.z) * 0.7;
             }
         }
         
