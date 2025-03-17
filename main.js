@@ -85,7 +85,7 @@ function init() {
       requestAnimationFrame(animate);
 
       // Update the scene
-      
+
       clawSceneInstance.update();
 
       // Render the scene
@@ -139,62 +139,6 @@ function createControls(scene) {
   });
   controlsContainer.appendChild(resetButton);
 
-  // Create Toggle Gravity button
-  const gravityButton = document.createElement("button");
-  gravityButton.textContent = "Toggle Gravity";
-  gravityButton.style.backgroundColor = "#2196F3";
-  Object.assign(gravityButton.style, buttonStyle, {
-    backgroundColor: "#2196F3",
-  });
-  gravityButton.addEventListener("click", () => {
-    scene.toggleGravity();
-    console.log("Gravity toggled");
-  });
-  gravityButton.addEventListener("mouseover", () => {
-    gravityButton.style.backgroundColor = "#0b7dda";
-  });
-  gravityButton.addEventListener("mouseout", () => {
-    gravityButton.style.backgroundColor = "#2196F3";
-  });
-  controlsContainer.appendChild(gravityButton);
-
-  // Open Claw button for debugging
-  const openClawButton = document.createElement("button");
-  openClawButton.textContent = "Open Claw";
-  openClawButton.style.backgroundColor = "#2196F3";
-  Object.assign(openClawButton.style, buttonStyle, {
-    backgroundColor: "#2196F3",
-  });
-  openClawButton.addEventListener("click", () => {
-    scene.openCustomClaw();
-    console.log("Gravity toggled");
-  });
-  openClawButton.addEventListener("mouseover", () => {
-    openClawButton.style.backgroundColor = "#0b7dda";
-  });
-  openClawButton.addEventListener("mouseout", () => {
-    openClawButton.style.backgroundColor = "#2196F3";
-  });
-  controlsContainer.appendChild(openClawButton);
-  // Close Claw button for debugging
-  const closeClawButton = document.createElement("button");
-  closeClawButton.textContent = "Close Claw";
-  closeClawButton.style.backgroundColor = "#2196F3";
-  Object.assign(closeClawButton.style, buttonStyle, {
-    backgroundColor: "#2196F3",
-  });
-  closeClawButton.addEventListener("click", () => {
-    scene.closeCustomClaw();
-    console.log("Gravity toggled");
-  });
-  closeClawButton.addEventListener("mouseover", () => {
-    closeClawButton.style.backgroundColor = "#0b7dda";
-  });
-  closeClawButton.addEventListener("mouseout", () => {
-    closeClawButton.style.backgroundColor = "#2196F3";
-  });
-  controlsContainer.appendChild(closeClawButton);
-
   // Create Move Claw button
   const clawButton = document.createElement("button");
   clawButton.textContent = "Move Claw";
@@ -231,41 +175,6 @@ function createControls(scene) {
   });
   controlsContainer.appendChild(randomizeButton);
 
-  // Create Enable Ball Physics button
-  const physicsButton = document.createElement("button");
-  physicsButton.textContent = "Enable Ball Physics";
-  physicsButton.style.backgroundColor = "#E91E63";
-  Object.assign(physicsButton.style, buttonStyle, {
-    backgroundColor: "#E91E63",
-  });
-  physicsButton.addEventListener("click", () => {
-    scene.enablePhysicsForAllBalls();
-    console.log(
-      "Ball physics enabled - balls will now interact with each other"
-    );
-  });
-  physicsButton.addEventListener("mouseover", () => {
-    physicsButton.style.backgroundColor = "#C2185B";
-  });
-  physicsButton.addEventListener("mouseout", () => {
-    physicsButton.style.backgroundColor = "#E91E63";
-  });
-  controlsContainer.appendChild(physicsButton);
-
-  // Create Lower Raise button
-  // const lowerRaiseButton = document.createElement('button');
-  // lowerRaiseButton.textContent = 'Lower Claw/Raise Claw';
-  // lowerRaiseButton.style.backgroundColor = '#102bc2';
-  // Object.assign(lowerRaiseButton.style, buttonStyle, { backgroundColor: '#102bc2' });
-  // lowerRaiseButton.addEventListener('click', () => {
-  //     scene.lowerRaise();
-  // });
-  // lowerRaiseButton.addEventListener('mouseover', () => {
-  //     lowerRaiseButton.style.backgroundColor = '#0d2297';
-  // });
-  // lowerRaiseButton.addEventListener('mouseout', () => {
-  //     lowerRaiseButton.style.backgroundColor = '#102bc2';
-  // });
   // controlsContainer.appendChild(lowerRaiseButton);
   document.addEventListener("keydown", (event) => {
     if (event.code === "Space") {
@@ -321,6 +230,9 @@ function loadClawMachineModel(scene) {
       console.log(
         "Model loading: " + (xhr.loaded / xhr.total) * 100 + "% loaded"
       );
+      if (xhr.loaded / xhr.total === 1) {
+        scene.moveClaw();
+      }
     },
     function (error) {
       console.error("Error loading model:", error);

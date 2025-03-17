@@ -20,12 +20,12 @@ export class ClawScene {
     this.claw_target = new THREE.Vector3(0, 6, 0);
     this.claw_movement_t = 0;
     this.claw_movement_speed = 0.01;
-		this.init_claw_pos = new THREE.Vector3(0, 6, 0);
-		this.lowered = false;
+    this.init_claw_pos = new THREE.Vector3(0, 6, 0);
+    this.lowered = false;
     // Clock for animation timing
     this.clock = new THREE.Clock();
     this.clock.start();
-		this.ballGrabbed = false;
+    this.ballGrabbed = false;
 
     // Initialize scene and components
     this.initScene();
@@ -33,16 +33,16 @@ export class ClawScene {
     this.initGround();
     this.initHermiteCurves();
     this.initCameraControls();
-    this.initClawMachine();
-		this.initCustomClaw(0.5, 0.15, Math.PI / 3);
-		this.initToys();
+    // this.initClawMachine();
+    this.initCustomClaw(0.5, 0.15, Math.PI / 3);
+    this.initToys();
     this.initInverseKinematics();
-		this.initSimulation();
-    
+    this.initSimulation();
+
     // Initialize physics
     this.ballPhysics = new BallPhysics();
-    
-		this.pathT = 0;
+
+    this.pathT = 0;
 
     // Store reference to the claw machine position
     this.clawMachinePosition = new THREE.Vector3(0, 0, 0);
@@ -54,7 +54,7 @@ export class ClawScene {
     // Create a scene and set a light blue background
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87ceeb); // Light blue / sky blue
-
+    this.gameOver = false;
     // Create a camera
     this.camera = new THREE.PerspectiveCamera(
       50,
@@ -63,8 +63,8 @@ export class ClawScene {
       1000
     );
 
-		// Set initial camera position
-		this.camera.position.set(-4.04, 6.16, 22.7);
+    // Set initial camera position
+    this.camera.position.set(-4.04, 6.16, 22.7);
 
     // Create a WebGL renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -185,26 +185,26 @@ export class ClawScene {
     let clawPosition = {
       x: -13.05,
       y: 1.6,
-			z: 22.8,
-		};
-		const roofHeight = clawPosition.y + 6.5;
+      z: 22.8,
+    };
+    const roofHeight = clawPosition.y + 6.5;
     const pathWidth = 2.0;
     const pathDepth = 2.0;
-		this.claw_position = new THREE.Vector3(
-			clawPosition.x - pathWidth / 2,
-			roofHeight - 2,
-			clawPosition.z + pathDepth / 2
-		);
-		this.init_claw_pos = new THREE.Vector3(
-			this.claw_position.x,
-			this.claw_position.y,
-			this.claw_position.z
-		);
+    this.claw_position = new THREE.Vector3(
+      clawPosition.x - pathWidth / 2,
+      roofHeight - 2,
+      clawPosition.z + pathDepth / 2
+    );
+    this.init_claw_pos = new THREE.Vector3(
+      this.claw_position.x,
+      this.claw_position.y,
+      this.claw_position.z
+    );
     this.chainSim = new ChainSim(this.scene, this.claw_position);
 
     // Position the chain to start from the claw position
     this.updateClawPosition(this.claw_position);
-		this.updateCustomClawPosition(this.claw_position);
+    this.updateCustomClawPosition(this.claw_position);
   }
   updateClawPosition(position) {
     // Add null check for position
@@ -240,218 +240,194 @@ export class ClawScene {
       for (const spring of this.chainSim.chainSim.springs) {
         spring.updateLine();
       }
-			this.chainSim.update(0.03);
+      this.chainSim.update(0.03);
     }
   }
 
   initCameraControls() {
     try {
       // Create orbit controls
-			this.controls = new OrbitControls(
-				this.camera,
-				this.renderer.domElement
-			);
-			this.controls.target.set(-13, 4, 22.3);
-			this.controls.enableDamping = true;
-			this.controls.dampingFactor = 0.25;
-			this.controls.screenSpacePanning = false;
-			this.controls.maxPolarAngle = Math.PI / 2;
-			this.controls.update();
-		} catch (error) {
-			console.error("Error initializing controls:", error);
-		}
-	}
-
-  initClawMachine() {
-    console.log("Initializing claw machine...");
-
-    // Machine properties
-    this.machineHeight = 10;
-
-    // Initialize the bounding box properties but don't create the actual box yet
-    // The actual box will be created in updateMachineBounds with the correct position
-    this.machineBoundsInitialized = false;
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.target.set(-13, 4, 22.3);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.25;
+      this.controls.screenSpacePanning = false;
+      // this.controls.enableRotate = false;
+      // this.controls.enablePan = false;
+      this.controls.maxPolarAngle = Math.PI / 2;
+      this.controls.update();
+    } catch (error) {
+      console.error("Error initializing controls:", error);
+    }
   }
-	setCustomClawScale(scale) {
-		this.scaleValue = scale;
-	}
-	initCustomClaw(scale, upperKnuckleBend, lowerKnuckleBend) {
-		this.scaleValue = scale;
-		this.upperKnuckleBend = upperKnuckleBend; // Currently not used for rotations
-		this.middleKnuckle = Math.PI / 2;
-		this.endEffectors = [];
-		this.openingCustomClaw = false;
-		this.closingCustomClaw = false;
-		this.maxAngleBend = Math.PI / 5 - 0.05;
-		this.minAngleBend = 0.15;
-		this.customClawClosed = false;
-		this.customClawOpened = upperKnuckleBend === this.minAngleBend;
-		this.customClawGrabbedPrize = false;
-		this.inTransitToBox = false;
-		this.customClawEndEffectorVelocity = new THREE.Vector3(0, 0,0)
-		this.fingers = []
 
-		// Create the base of the claw (the root)
-		const baseMesh = new THREE.Mesh(
-			new THREE.SphereGeometry(1, 32, 32),
-			new THREE.MeshNormalMaterial()
-		);
-		// Scale down the base
-		baseMesh.scale.set(
-			this.scaleValue * 0.1,
-			this.scaleValue * 0.1,
-			this.scaleValue * 0.1
-		);
-		// Create a group to serve as the claw node and add the base mesh
-		this.clawNode = new THREE.Group();
-		this.clawNode.add(baseMesh);
-		this.scene.add(this.clawNode);
-		const upperFingerLength = 1 * this.scaleValue;
-		const lowerFingerLength = 0.8 * this.scaleValue;
-		const fingerThickness = 0.1 * this.scaleValue;
-		const upperFingerGeometry = new THREE.BoxGeometry(
-			upperFingerLength,
-			fingerThickness,
-			fingerThickness
-		);
-		const lowerFingerGeometry = new THREE.BoxGeometry(
-			lowerFingerLength,
-			fingerThickness,
-			fingerThickness
-		);
-		const fingerMaterial = new THREE.MeshStandardMaterial({
-			color: 0xffffff,
-		});
+  setCustomClawScale(scale) {
+    this.scaleValue = scale;
+  }
+  initCustomClaw(scale, upperKnuckleBend, lowerKnuckleBend) {
+    this.scaleValue = scale;
+    this.upperKnuckleBend = upperKnuckleBend; // Currently not used for rotations
+    this.middleKnuckle = Math.PI / 2;
+    this.endEffectors = [];
+    this.openingCustomClaw = false;
+    this.closingCustomClaw = false;
+    this.maxAngleBend = Math.PI / 5 - 0.05;
+    this.minAngleBend = 0.15;
+    this.customClawClosed = false;
+    this.customClawOpened = upperKnuckleBend === this.minAngleBend;
+    this.customClawGrabbedPrize = false;
+    this.inTransitToBox = false;
+    this.customClawEndEffectorVelocity = new THREE.Vector3(0, 0, 0);
+    this.fingers = [];
 
-		// Define the angles (in radians) for each of the 4 fingers around the sphere.
-		const fingerAngles = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
+    // Create the base of the claw (the root)
+    const baseMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 32, 32),
+      new THREE.MeshNormalMaterial()
+    );
+    // Scale down the base
+    baseMesh.scale.set(
+      this.scaleValue * 0.1,
+      this.scaleValue * 0.1,
+      this.scaleValue * 0.1
+    );
+    // Create a group to serve as the claw node and add the base mesh
+    this.clawNode = new THREE.Group();
+    this.clawNode.add(baseMesh);
+    this.scene.add(this.clawNode);
+    const upperFingerLength = 1 * this.scaleValue;
+    const lowerFingerLength = 0.8 * this.scaleValue;
+    const fingerThickness = 0.1 * this.scaleValue;
+    const upperFingerGeometry = new THREE.BoxGeometry(
+      upperFingerLength,
+      fingerThickness,
+      fingerThickness
+    );
+    const lowerFingerGeometry = new THREE.BoxGeometry(
+      lowerFingerLength,
+      fingerThickness,
+      fingerThickness
+    );
+    const fingerMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+    });
 
-		// Create 4 fingers.
-		fingerAngles.forEach((angle, index) => {
-			// Create a group for the finger that pivots around the sphere's center.
-			const fingerGroup = new THREE.Group();
-			// Add the group as a child of the sphere so it pivots about the sphere's center.
-			this.clawNode.add(fingerGroup);
+    // Define the angles (in radians) for each of the 4 fingers around the sphere.
+    const fingerAngles = [0, Math.PI / 2, Math.PI, -Math.PI / 2];
 
-			// Rotate the entire finger group so the finger points outward.
-			fingerGroup.rotation.z = -this.upperKnuckleBend;
-			fingerGroup.rotation.y = angle;
+    // Create 4 fingers.
+    fingerAngles.forEach((angle, index) => {
+      // Create a group for the finger that pivots around the sphere's center.
+      const fingerGroup = new THREE.Group();
+      // Add the group as a child of the sphere so it pivots about the sphere's center.
+      this.clawNode.add(fingerGroup);
 
-			// Create the upper finger.
-			// To ensure the pivot is at the left end, we shift the geometry.
-			const upperFinger = new THREE.Mesh(
-				upperFingerGeometry,
-				fingerMaterial
-			);
-			this.fingers.push(upperFinger)
-			//translate by the radius of the root ball + half length of the box
-			// all translations need to be scaled by scale * 0.1 now
-			upperFinger.geometry.translate(
-				this.scaleValue * 0.1 * (1 + upperFingerLength / 2),
-				0,
-				0
-			);
-			fingerGroup.add(upperFinger);
-			
-			// Create a pivot for the lower finger at the tip of the upper finger.
-			const lowerFingerPivot = new THREE.Group();
-			lowerFingerPivot.position.set(
-				this.scaleValue * 0.1 + upperFingerLength,
-				fingerThickness / 2,
-				0
-			);
-			upperFinger.add(lowerFingerPivot);
-			
-			// Create the lower finger.
-			const lowerFinger = new THREE.Mesh(
-				lowerFingerGeometry,
-				fingerMaterial
-			);
-			lowerFinger.geometry.translate(
-				this.scaleValue *
-				0.1 *
-				(((lowerFingerLength * 1) / scale) * 1.25),
-				-this.scaleValue *
-				0.1 *
-				(((fingerThickness * 1) / scale) * 1.25),
-				0
-			);
-			this.fingers.push(lowerFinger)
-			lowerFingerPivot.add(lowerFinger);
-			
-			// Optionally, set an initial rotation for the lower finger (e.g., a 30° bend).
-			lowerFingerPivot.rotation.z = -lowerKnuckleBend; // adjust as needed
-			
-			// Example: Create a red cube as an end effector
-			const wrist = new THREE.Group();
-			wrist.position.set(lowerFingerLength, -fingerThickness / 2, 0);
-			lowerFinger.add(wrist);
-			const geometry = new THREE.SphereGeometry(0.1, 16, 16);
-			const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
-			const endEffector = new THREE.Mesh(geometry, material);
-			wrist.userData.mass = 0.1
-			// wrist.userData.isImmobile = false
-			endEffector.visible = false
-			// endEffector.geometry.translate(
-			// 	lowerFingerLength,
-			// 	-fingerThickness / 2,
-			// 	0
-			// );
-			wrist.add(endEffector);
-			this.endEffectors.push(wrist);
+      // Rotate the entire finger group so the finger points outward.
+      fingerGroup.rotation.z = -this.upperKnuckleBend;
+      fingerGroup.rotation.y = angle;
 
-			// Optional: add an axes helper to visualize the finger's local axes.
-			// const axesHelper = new THREE.AxesHelper(2);
-			// fingerGroup.add(axesHelper);
-			// const axesHelper1 = new THREE.AxesHelper(2)
-			// upperFinger.add(axesHelper1)
-			// const axesHelper2 = new THREE.AxesHelper(5);
-			// lowerFinger.add(axesHelper2);
-			// const axesHelper3 = new THREE.AxesHelper(2);
-			// lowerFingerPivot.add(axesHelper3);
-		});
-		// this.customClaw = new ClawCustom(1, Math.PI/3)
-		// this.updateCustomClawPosition(new THREE.Vector3(-14.4, 3, 21.5))
-	}
-	getCustomClawEndEffectorPositions() {
-		let temp = [];
-		this.endEffectors.forEach((effector) => {
-			const globalPos = new THREE.Vector3();
-			effector.getWorldPosition(globalPos);
-			temp.push(globalPos);
-		});
-		return temp;
-	}
-	getCustomClawForceOnBall(toy) {
-		let friction = 0;
-		this.scene.updateMatrixWorld(true);
-		this.endEffectors.forEach((effectorGroup) => {
-			const worldPos = new THREE.Vector3();
-			effectorGroup.getWorldPosition(worldPos);
-			const mesh = effectorGroup.children[0];
-			mesh.geometry.computeBoundingSphere();
-			const localBoundingSphere = mesh.geometry.boundingSphere;
-			const worldScale = new THREE.Vector3();
-			mesh.getWorldScale(worldScale);
-			const effectiveRadius = localBoundingSphere.radius * worldScale.x;
-			const effectorSphere = new THREE.Sphere(worldPos, effectiveRadius);
-			if (toy.userData.boundingSphere.intersectsSphere(effectorSphere)) {
-				console.log(
-					"Intersection detected with an end effector at:",
-					worldPos
-				);
-				friction += 2.45;
-			}
-		});
-		return new THREE.Vector3(0, friction, 0);
+      // Create the upper finger.
+      // To ensure the pivot is at the left end, we shift the geometry.
+      const upperFinger = new THREE.Mesh(upperFingerGeometry, fingerMaterial);
+      this.fingers.push(upperFinger);
+      //translate by the radius of the root ball + half length of the box
+      // all translations need to be scaled by scale * 0.1 now
+      upperFinger.geometry.translate(
+        this.scaleValue * 0.1 * (1 + upperFingerLength / 2),
+        0,
+        0
+      );
+      fingerGroup.add(upperFinger);
 
-		// let friction = 0;
-		// for (let end of this.endEffectors) {
-		// 	if (toy.userData.boundingSphere.intersectsSphere(end.children[0].geometry.boundingSphere)) {
-		// 	}
-		// }
-		// return 0
-	}
+      // Create a pivot for the lower finger at the tip of the upper finger.
+      const lowerFingerPivot = new THREE.Group();
+      lowerFingerPivot.position.set(
+        this.scaleValue * 0.1 + upperFingerLength,
+        fingerThickness / 2,
+        0
+      );
+      upperFinger.add(lowerFingerPivot);
+
+      // Create the lower finger.
+      const lowerFinger = new THREE.Mesh(lowerFingerGeometry, fingerMaterial);
+      lowerFinger.geometry.translate(
+        this.scaleValue * 0.1 * (((lowerFingerLength * 1) / scale) * 1.25),
+        -this.scaleValue * 0.1 * (((fingerThickness * 1) / scale) * 1.25),
+        0
+      );
+      this.fingers.push(lowerFinger);
+      lowerFingerPivot.add(lowerFinger);
+
+      // Optionally, set an initial rotation for the lower finger (e.g., a 30° bend).
+      lowerFingerPivot.rotation.z = -lowerKnuckleBend; // adjust as needed
+
+      // Example: Create a red cube as an end effector
+      const wrist = new THREE.Group();
+      wrist.position.set(lowerFingerLength, -fingerThickness / 2, 0);
+      lowerFinger.add(wrist);
+      const geometry = new THREE.SphereGeometry(0.1, 16, 16);
+      const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
+      const endEffector = new THREE.Mesh(geometry, material);
+      wrist.userData.mass = 0.1;
+      // wrist.userData.isImmobile = false
+      endEffector.visible = false;
+      // endEffector.geometry.translate(
+      // 	lowerFingerLength,
+      // 	-fingerThickness / 2,
+      // 	0
+      // );
+      wrist.add(endEffector);
+      this.endEffectors.push(wrist);
+
+      // Optional: add an axes helper to visualize the finger's local axes.
+      // const axesHelper = new THREE.AxesHelper(2);
+      // fingerGroup.add(axesHelper);
+      // const axesHelper1 = new THREE.AxesHelper(2)
+      // upperFinger.add(axesHelper1)
+      // const axesHelper2 = new THREE.AxesHelper(5);
+      // lowerFinger.add(axesHelper2);
+      // const axesHelper3 = new THREE.AxesHelper(2);
+      // lowerFingerPivot.add(axesHelper3);
+    });
+    // this.customClaw = new ClawCustom(1, Math.PI/3)
+    // this.updateCustomClawPosition(new THREE.Vector3(-14.4, 3, 21.5))
+  }
+  getCustomClawEndEffectorPositions() {
+    let temp = [];
+    this.endEffectors.forEach((effector) => {
+      const globalPos = new THREE.Vector3();
+      effector.getWorldPosition(globalPos);
+      temp.push(globalPos);
+    });
+    return temp;
+  }
+  getCustomClawForceOnBall(toy) {
+    let friction = 0;
+    this.scene.updateMatrixWorld(true);
+    this.endEffectors.forEach((effectorGroup) => {
+      const worldPos = new THREE.Vector3();
+      effectorGroup.getWorldPosition(worldPos);
+      const mesh = effectorGroup.children[0];
+      mesh.geometry.computeBoundingSphere();
+      const localBoundingSphere = mesh.geometry.boundingSphere;
+      const worldScale = new THREE.Vector3();
+      mesh.getWorldScale(worldScale);
+      const effectiveRadius = localBoundingSphere.radius * worldScale.x;
+      const effectorSphere = new THREE.Sphere(worldPos, effectiveRadius);
+      if (toy.userData.boundingSphere.intersectsSphere(effectorSphere)) {
+        console.log("Intersection detected with an end effector at:", worldPos);
+        friction += 2.45;
+      }
+    });
+    return new THREE.Vector3(0, friction, 0);
+
+    // let friction = 0;
+    // for (let end of this.endEffectors) {
+    // 	if (toy.userData.boundingSphere.intersectsSphere(end.children[0].geometry.boundingSphere)) {
+    // 	}
+    // }
+    // return 0
+  }
   initToys() {
     console.log("Initializing toys with direct positioning");
 
@@ -532,25 +508,25 @@ export class ClawScene {
         true // This is an absolute position
       );
 
-			// Double check the ball was created and is in the scene
-			if (ball) {
-				// Set initial physics state (immobile or with random velocity)
-				if (enablePhysics) {
-					// Enable physics with random initial velocities
-					ball.userData.isImmobile = false;
-					ball.userData.velocity.set(
-						(Math.random() - 0.5) * 2.0, // Random X velocity
-						Math.random() * 0.5, // Small upward Y velocity
-						(Math.random() - 0.5) * 2.0 // Random Z velocity
-					);
-					ball.userData.acceleration.set(0, 0, 0);
-				} else {
-					// Make balls immobile by default - they'll only move when grabbed
-					ball.userData.velocity.set(0, 0, 0);
-					ball.userData.isImmobile = true; // Flag to mark as immobile
-				}
-			}
-		}
+      // Double check the ball was created and is in the scene
+      if (ball) {
+        // Set initial physics state (immobile or with random velocity)
+        if (enablePhysics) {
+          // Enable physics with random initial velocities
+          ball.userData.isImmobile = false;
+          ball.userData.velocity.set(
+            (Math.random() - 0.5) * 2.0, // Random X velocity
+            Math.random() * 0.5, // Small upward Y velocity
+            (Math.random() - 0.5) * 2.0 // Random Z velocity
+          );
+          ball.userData.acceleration.set(0, 0, 0);
+        } else {
+          // Make balls immobile by default - they'll only move when grabbed
+          ball.userData.velocity.set(0, 0, 0);
+          ball.userData.isImmobile = true; // Flag to mark as immobile
+        }
+      }
+    }
 
     return this.toys.length;
   }
@@ -646,9 +622,7 @@ export class ClawScene {
       `Created machine bounds at position: (${clawPosition.x}, ${clawPosition.y}, ${clawPosition.z})`
     );
     console.log(
-			`Bounds size: ${boundsSize * 2} x ${boundsHeight} x ${
-				boundsSize * 2
-			}`
+      `Bounds size: ${boundsSize * 2} x ${boundsHeight} x ${boundsSize * 2}`
     );
     console.log(`Floor level set to Y = ${floorY}`);
 
@@ -665,168 +639,168 @@ export class ClawScene {
     if (!this.positionMarker) {
       this.positionMarker = new THREE.Mesh(
         new THREE.SphereGeometry(0.2, 16, 16),
-				new THREE.MeshBasicMaterial({
-					color: 0xff0000,
-					wireframe: true,
-				})
+        new THREE.MeshBasicMaterial({
+          color: 0xff0000,
+          wireframe: true,
+        })
       );
       this.scene.add(this.positionMarker);
     }
     this.positionMarker.position.copy(clawPosition);
   }
 
-	// Create a bounding box for the glass hole in the claw machine
-	createGlassHoleBounds(clawPosition) {
-		console.log("Creating glass hole bounds at position:", clawPosition);
+  // Create a bounding box for the glass hole in the claw machine
+  createGlassHoleBounds(clawPosition) {
+    console.log("Creating glass hole bounds at position:", clawPosition);
 
-		// Size of the glass hole - small square opening
-		const holeWidth = 1.35; // Width of the hole
-		const holeHeight = 0.9; // Height of the hole
-		const holeDepth = 1.35; // Depth of the hole
-		const zOffset = 1.2;
-		const xOffset = 1.15;
+    // Size of the glass hole - small square opening
+    const holeWidth = 1.35; // Width of the hole
+    const holeHeight = 0.9; // Height of the hole
+    const holeDepth = 1.35; // Depth of the hole
+    const zOffset = 1.2;
+    const xOffset = 1.15;
 
-		// Position the hole at the front of the machine (positive Z)
-		const holeY = clawPosition.y + 1.3; // Slightly above the base
+    // Position the hole at the front of the machine (positive Z)
+    const holeY = clawPosition.y + 1.3; // Slightly above the base
 
-		// Creating a direct THREE.Box3 for debugging first
-		const glassBox = new THREE.Box3(
-			new THREE.Vector3(
-				clawPosition.x + xOffset - holeWidth / 2,
-				holeY,
-				clawPosition.z + zOffset - holeDepth / 2
-			),
-			new THREE.Vector3(
-				clawPosition.x + xOffset + holeWidth / 2,
-				holeY + holeHeight,
-				clawPosition.z + zOffset + holeDepth / 2
-			)
-		);
+    // Creating a direct THREE.Box3 for debugging first
+    const glassBox = new THREE.Box3(
+      new THREE.Vector3(
+        clawPosition.x + xOffset - holeWidth / 2,
+        holeY,
+        clawPosition.z + zOffset - holeDepth / 2
+      ),
+      new THREE.Vector3(
+        clawPosition.x + xOffset + holeWidth / 2,
+        holeY + holeHeight,
+        clawPosition.z + zOffset + holeDepth / 2
+      )
+    );
 
-		// Create a direct box helper to ensure visibility
-		if (this.glassBoxHelper) {
-			this.scene.remove(this.glassBoxHelper);
-		}
+    // Create a direct box helper to ensure visibility
+    if (this.glassBoxHelper) {
+      this.scene.remove(this.glassBoxHelper);
+    }
 
-		this.glassBoxHelper = new THREE.Box3Helper(glassBox, 0x00ffff);
-		this.scene.add(this.glassBoxHelper);
+    this.glassBoxHelper = new THREE.Box3Helper(glassBox, 0x00ffff);
+    this.scene.add(this.glassBoxHelper);
 
-		// Create visible walls for the glass hole (except top)
-		this.createGlassHoleWalls(glassBox);
+    // Create visible walls for the glass hole (except top)
+    this.createGlassHoleWalls(glassBox);
 
-		// Store the box for collision detection
-		this.glassHoleBounds = glassBox;
+    // Store the box for collision detection
+    this.glassHoleBounds = glassBox;
 
-		// Initialize or reset the array to track balls in the glass hole
-		this.ballsInGlassHole = [];
+    // Initialize or reset the array to track balls in the glass hole
+    this.ballsInGlassHole = [];
 
-		// Add a text display for number of balls in glass hole
-		this.updateGlassHoleText();
+    // Add a text display for number of balls in glass hole
+    this.updateGlassHoleText();
 
-		console.log(`Glass hole box created at: 
+    console.log(`Glass hole box created at: 
             Min: (${glassBox.min.x.toFixed(2)}, ${glassBox.min.y.toFixed(
-			2
-		)}, ${glassBox.min.z.toFixed(2)})
+      2
+    )}, ${glassBox.min.z.toFixed(2)})
             Max: (${glassBox.max.x.toFixed(2)}, ${glassBox.max.y.toFixed(
-			2
-		)}, ${glassBox.max.z.toFixed(2)})`);
-	}
+      2
+    )}, ${glassBox.max.z.toFixed(2)})`);
+  }
 
-	// Create visible walls for the glass hole (except top)
-	createGlassHoleWalls(glassBox) {
-		// Remove existing walls if any
-		if (this.glassHoleWalls) {
-			this.glassHoleWalls.forEach((wall) => {
-				this.scene.remove(wall);
-			});
-		}
+  // Create visible walls for the glass hole (except top)
+  createGlassHoleWalls(glassBox) {
+    // Remove existing walls if any
+    if (this.glassHoleWalls) {
+      this.glassHoleWalls.forEach((wall) => {
+        this.scene.remove(wall);
+      });
+    }
 
-		this.glassHoleWalls = [];
+    this.glassHoleWalls = [];
 
-		// Calculate dimensions
-		const width = glassBox.max.x - glassBox.min.x;
-		const height = glassBox.max.y - glassBox.min.y;
-		const depth = glassBox.max.z - glassBox.min.z;
+    // Calculate dimensions
+    const width = glassBox.max.x - glassBox.min.x;
+    const height = glassBox.max.y - glassBox.min.y;
+    const depth = glassBox.max.z - glassBox.min.z;
 
-		// Create semi-transparent material for walls
-		const wallMaterial = new THREE.MeshBasicMaterial({
-			color: 0x00ffff,
-			transparent: true,
-			opacity: 0.3,
-			side: THREE.DoubleSide,
-		});
+    // Create semi-transparent material for walls
+    const wallMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide,
+    });
 
-		// Left wall (X-min)
-		const leftWall = new THREE.Mesh(
-			new THREE.PlaneGeometry(depth, height),
-			wallMaterial
-		);
-		leftWall.rotation.y = Math.PI / 2;
-		leftWall.position.set(
-			glassBox.min.x,
-			glassBox.min.y + height / 2,
-			glassBox.min.z + depth / 2
-		);
-		this.scene.add(leftWall);
-		this.glassHoleWalls.push(leftWall);
+    // Left wall (X-min)
+    const leftWall = new THREE.Mesh(
+      new THREE.PlaneGeometry(depth, height),
+      wallMaterial
+    );
+    leftWall.rotation.y = Math.PI / 2;
+    leftWall.position.set(
+      glassBox.min.x,
+      glassBox.min.y + height / 2,
+      glassBox.min.z + depth / 2
+    );
+    this.scene.add(leftWall);
+    this.glassHoleWalls.push(leftWall);
 
-		// Right wall (X-max)
-		const rightWall = new THREE.Mesh(
-			new THREE.PlaneGeometry(depth, height),
-			wallMaterial
-		);
-		rightWall.rotation.y = -Math.PI / 2;
-		rightWall.position.set(
-			glassBox.max.x,
-			glassBox.min.y + height / 2,
-			glassBox.min.z + depth / 2
-		);
-		this.scene.add(rightWall);
-		this.glassHoleWalls.push(rightWall);
+    // Right wall (X-max)
+    const rightWall = new THREE.Mesh(
+      new THREE.PlaneGeometry(depth, height),
+      wallMaterial
+    );
+    rightWall.rotation.y = -Math.PI / 2;
+    rightWall.position.set(
+      glassBox.max.x,
+      glassBox.min.y + height / 2,
+      glassBox.min.z + depth / 2
+    );
+    this.scene.add(rightWall);
+    this.glassHoleWalls.push(rightWall);
 
-		// Bottom wall (Y-min)
-		const bottomWall = new THREE.Mesh(
-			new THREE.PlaneGeometry(width, depth),
-			wallMaterial
-		);
-		bottomWall.rotation.x = -Math.PI / 2;
-		bottomWall.position.set(
-			glassBox.min.x + width / 2,
-			glassBox.min.y,
-			glassBox.min.z + depth / 2
-		);
-		this.scene.add(bottomWall);
-		this.glassHoleWalls.push(bottomWall);
+    // Bottom wall (Y-min)
+    const bottomWall = new THREE.Mesh(
+      new THREE.PlaneGeometry(width, depth),
+      wallMaterial
+    );
+    bottomWall.rotation.x = -Math.PI / 2;
+    bottomWall.position.set(
+      glassBox.min.x + width / 2,
+      glassBox.min.y,
+      glassBox.min.z + depth / 2
+    );
+    this.scene.add(bottomWall);
+    this.glassHoleWalls.push(bottomWall);
 
-		// Front wall (Z-max)
-		const frontWall = new THREE.Mesh(
-			new THREE.PlaneGeometry(width, height),
-			wallMaterial
-		);
-		frontWall.rotation.y = Math.PI;
-		frontWall.position.set(
-			glassBox.min.x + width / 2,
-			glassBox.min.y + height / 2,
-			glassBox.max.z
-		);
-		this.scene.add(frontWall);
-		this.glassHoleWalls.push(frontWall);
+    // Front wall (Z-max)
+    const frontWall = new THREE.Mesh(
+      new THREE.PlaneGeometry(width, height),
+      wallMaterial
+    );
+    frontWall.rotation.y = Math.PI;
+    frontWall.position.set(
+      glassBox.min.x + width / 2,
+      glassBox.min.y + height / 2,
+      glassBox.max.z
+    );
+    this.scene.add(frontWall);
+    this.glassHoleWalls.push(frontWall);
 
-		// Back wall (Z-min)
-		const backWall = new THREE.Mesh(
-			new THREE.PlaneGeometry(width, height),
-			wallMaterial
-		);
-		backWall.position.set(
-			glassBox.min.x + width / 2,
-			glassBox.min.y + height / 2,
-			glassBox.min.z
-		);
-		this.scene.add(backWall);
-		this.glassHoleWalls.push(backWall);
+    // Back wall (Z-min)
+    const backWall = new THREE.Mesh(
+      new THREE.PlaneGeometry(width, height),
+      wallMaterial
+    );
+    backWall.position.set(
+      glassBox.min.x + width / 2,
+      glassBox.min.y + height / 2,
+      glassBox.min.z
+    );
+    this.scene.add(backWall);
+    this.glassHoleWalls.push(backWall);
 
-		// NO TOP WALL - balls can enter from the top
-	}
+    // NO TOP WALL - balls can enter from the top
+  }
 
   // Update the text display showing how many balls are collected
   updateGlassHoleText() {
@@ -840,90 +814,83 @@ export class ClawScene {
       this.collectedBallsCount = 0;
     }
 
-		// Only show the collected balls count as requested
-		const text = `Balls: ${this.collectedBallsCount}`;
-		console.log(text);
+    // Only show the collected balls count as requested
+    const text = `Score: ${this.collectedBallsCount}`;
+    console.log(text);
 
-		// Create or update the canvas texture for the text
-		if (!this.ballCountCanvas) {
-			// Create a canvas for the text texture
-			this.ballCountCanvas = document.createElement("canvas");
-			this.ballCountCanvas.width = 512;
-			this.ballCountCanvas.height = 128;
+    // Create or update the canvas texture for the text
+    if (!this.ballCountCanvas) {
+      // Create a canvas for the text texture
+      this.ballCountCanvas = document.createElement("canvas");
+      this.ballCountCanvas.width = 512;
+      this.ballCountCanvas.height = 128;
 
-			// Create a texture from the canvas
-			this.ballCountTexture = new THREE.CanvasTexture(
-				this.ballCountCanvas
-			);
+      // Create a texture from the canvas
+      this.ballCountTexture = new THREE.CanvasTexture(this.ballCountCanvas);
 
-			// Create a material using the texture
-			this.ballCountMaterial = new THREE.MeshBasicMaterial({
-				map: this.ballCountTexture,
-      transparent: true,
-				opacity: 0.9,
-      side: THREE.DoubleSide,
-    });
+      // Create a material using the texture
+      this.ballCountMaterial = new THREE.MeshBasicMaterial({
+        map: this.ballCountTexture,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide,
+      });
 
-			// Create a plane to display the text
-			this.ballCountPlane = new THREE.Mesh(
-				new THREE.PlaneGeometry(2, 0.5),
-				this.ballCountMaterial
-			);
+      // Create a plane to display the text
+      this.ballCountPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 0.5),
+        this.ballCountMaterial
+      );
 
-			// Add to the scene
-			this.scene.add(this.ballCountPlane);
-		}
+      // Add to the scene
+      this.scene.add(this.ballCountPlane);
+    }
 
-		// Update the text on the canvas
-		const ctx = this.ballCountCanvas.getContext("2d");
-		ctx.clearRect(
-			0,
-			0,
-			this.ballCountCanvas.width,
-			this.ballCountCanvas.height
-		);
+    // Update the text on the canvas
+    const ctx = this.ballCountCanvas.getContext("2d");
+    ctx.clearRect(
+      0,
+      0,
+      this.ballCountCanvas.width,
+      this.ballCountCanvas.height
+    );
 
-		// Set stylish text properties
-		ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-		ctx.fillRect(
-			0,
-			0,
-			this.ballCountCanvas.width,
-			this.ballCountCanvas.height
-		);
-		ctx.font = "bold 64px Arial";
-		ctx.textAlign = "center";
-		ctx.textBaseline = "middle";
+    // Set stylish text properties
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(0, 0, this.ballCountCanvas.width, this.ballCountCanvas.height);
+    ctx.font = "bold 64px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-		// Create a gradient for text
-		const gradient = ctx.createLinearGradient(
-			0,
-			0,
-			this.ballCountCanvas.width,
-			0
-		);
-		gradient.addColorStop(0, "#00FFFF"); // Cyan
-		gradient.addColorStop(0.5, "#FFFFFF"); // White
-		gradient.addColorStop(1, "#00FFFF"); // Cyan
-		ctx.fillStyle = gradient;
+    // Create a gradient for text
+    const gradient = ctx.createLinearGradient(
+      0,
+      0,
+      this.ballCountCanvas.width,
+      0
+    );
+    gradient.addColorStop(0, "#00FFFF"); // Cyan
+    gradient.addColorStop(0.5, "#FFFFFF"); // White
+    gradient.addColorStop(1, "#00FFFF"); // Cyan
+    ctx.fillStyle = gradient;
 
-		// Draw the text
-		ctx.fillText(
-			text,
-			this.ballCountCanvas.width / 2,
-			this.ballCountCanvas.height / 2
-		);
+    // Draw the text
+    ctx.fillText(
+      text,
+      this.ballCountCanvas.width / 2,
+      this.ballCountCanvas.height / 2
+    );
 
-		// Update the texture
-		this.ballCountTexture.needsUpdate = true;
+    // Update the texture
+    this.ballCountTexture.needsUpdate = true;
 
     // Position the text above the glass hole
-		if (this.glassHoleBounds && this.ballCountPlane) {
-			// Get the center of the glass hole
+    if (this.glassHoleBounds && this.ballCountPlane) {
+      // Get the center of the glass hole
       const center = new THREE.Vector3();
       this.glassHoleBounds.getCenter(center);
 
-			// Position slightly above the glass hole
+      // Position slightly above the glass hole
       this.ballCountPlane.position.set(
         center.x,
         center.y + 1.5, // Above the glass hole
@@ -935,75 +902,70 @@ export class ClawScene {
     }
   }
 
-	// Check if a ball is inside the glass hole and update the tracking array
-	checkBallInGlassHole(ball) {
-		// Skip if no glass hole bounds or the ball doesn't have a bounding sphere
-		if (!this.glassHoleBounds || !ball.userData.boundingSphere) {
-			return false;
-		}
+  // Check if a ball is inside the glass hole and update the tracking array
+  checkBallInGlassHole(ball) {
+    // Skip if no glass hole bounds or the ball doesn't have a bounding sphere
+    if (!this.glassHoleBounds || !ball.userData.boundingSphere) {
+      return false;
+    }
 
-		// If the ball is still immobile, it's in the safe area - don't check for glass hole
-		if (ball.userData.isImmobile && !ball.userData.isGrabbed) {
-			return false;
-		}
+    // If the ball is still immobile, it's in the safe area - don't check for glass hole
+    if (ball.userData.isImmobile && !ball.userData.isGrabbed) {
+      return false;
+    }
 
-		// Skip checking if the ball is already in the list of balls in glass hole
-		if (this.ballsInGlassHole.includes(ball)) {
-			// Check if we should remove the ball if it's deeply inside and touching the bottom
-			const distanceFromBottom =
-				ball.position.y -
-				(this.glassHoleBounds.min.y + ball.userData.radius);
+    // Skip checking if the ball is already in the list of balls in glass hole
+    if (this.ballsInGlassHole.includes(ball)) {
+      // Check if we should remove the ball if it's deeply inside and touching the bottom
+      const distanceFromBottom =
+        ball.position.y - (this.glassHoleBounds.min.y + ball.userData.radius);
 
-			// Only remove if ball is settled and fully contained
-			if (
-				distanceFromBottom < 0.15 &&
-				ball.position.x >
-					this.glassHoleBounds.min.x + ball.userData.radius &&
-				ball.position.x <
-					this.glassHoleBounds.max.x - ball.userData.radius &&
-				ball.position.z >
-					this.glassHoleBounds.min.z + ball.userData.radius &&
-				ball.position.z <
-					this.glassHoleBounds.max.z - ball.userData.radius
-			) {
-				// Get the ball's velocity magnitude
-				const velocityMagnitude = ball.userData.velocity.length();
+      // Only remove if ball is settled and fully contained
+      if (
+        distanceFromBottom < 0.15 &&
+        ball.position.x > this.glassHoleBounds.min.x + ball.userData.radius &&
+        ball.position.x < this.glassHoleBounds.max.x - ball.userData.radius &&
+        ball.position.z > this.glassHoleBounds.min.z + ball.userData.radius &&
+        ball.position.z < this.glassHoleBounds.max.z - ball.userData.radius
+      ) {
+        // Get the ball's velocity magnitude
+        const velocityMagnitude = ball.userData.velocity.length();
 
-				// Only remove if the ball is almost stopped (very low velocity)
-				if (velocityMagnitude < 0.1) {
-					console.log(
-						`Ball ${ball.name} is fully contained and touching bottom - removing it`
-					);
-					this.removeBall(ball);
-					return true;
-				}
-			}
-			return true;
-		}
+        // Only remove if the ball is almost stopped (very low velocity)
+        if (velocityMagnitude < 0.1) {
+          console.log(
+            `Ball ${ball.name} is fully contained and touching bottom - removing it`
+          );
+          this.removeBall(ball);
+          return true;
+        }
+      }
+      return true;
+    }
 
-		// Check if the ball's bounding sphere intersects with the glass hole box
-		const isInGlassHole = ball.userData.boundingSphere.intersectsBox(
-			this.glassHoleBounds
-		);
+    // Check if the ball's bounding sphere intersects with the glass hole box
+    const isInGlassHole = ball.userData.boundingSphere.intersectsBox(
+      this.glassHoleBounds
+    );
 
-		if (isInGlassHole) {
-			console.log(
-				`Ball ${ball.name} entered the glass hole. Total balls inside: ${this.ballsInGlassHole.length}`
-			);
-			this.ballsInGlassHole.push(ball);
-			this.updateGlassHoleText();
-			return true;
-		}
+    if (isInGlassHole) {
+      console.log(
+        `Ball ${ball.name} entered the glass hole. Total balls inside: ${this.ballsInGlassHole.length}`
+      );
+      this.ballsInGlassHole.push(ball);
+      this.updateGlassHoleText();
+      return true;
+    }
 
-		return false;
-	}
+    return false;
+  }
 
   // Remove a ball from the scene and tracking arrays
   removeBall(ball) {
     if (!ball) return;
 
     console.log(
-			`Removing ball ${ball.name} that touched the bottom of the glass hole`
+      `Removing ball ${ball.name} that touched the bottom of the glass hole`
     );
 
     // Remove from scene
@@ -1098,10 +1060,7 @@ export class ClawScene {
       // Update each particle in the effect
       effect.group.children.forEach((particle) => {
         // Move particle
-				particle.position.addScaledVector(
-					particle.userData.velocity,
-					dt
-				);
+        particle.position.addScaledVector(particle.userData.velocity, dt);
 
         // Fade out
         particle.material.opacity = 0.7 * (1 - age);
@@ -1114,9 +1073,7 @@ export class ClawScene {
     // Remove old effects
     for (const effect of effectsToRemove) {
       this.scene.remove(effect.group);
-			this.removalEffects = this.removalEffects.filter(
-				(e) => e !== effect
-			);
+      this.removalEffects = this.removalEffects.filter((e) => e !== effect);
     }
   }
 
@@ -1221,9 +1178,7 @@ export class ClawScene {
       console.log(
         `Set relative position: (${ball.position.x.toFixed(
           2
-				)}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(
-					2
-				)})`
+        )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
       );
     } else {
       // Use the position directly (either absolute or we don't have a clawMachinePosition)
@@ -1231,9 +1186,7 @@ export class ClawScene {
       console.log(
         `Set absolute position: (${ball.position.x.toFixed(
           2
-				)}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(
-					2
-				)})`
+        )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
       );
     }
 
@@ -1255,21 +1208,21 @@ export class ClawScene {
       )}) with radius: ${ball.userData.boundingSphere.radius.toFixed(2)}`
     );
 
-		// Add physics properties
-		ball.userData.velocity = new THREE.Vector3(
-			(Math.random() - 0.5) * 0.1, // Small random initial velocity
-			0,
-			(Math.random() - 0.5) * 0.1
-		);
-		ball.userData.acceleration = new THREE.Vector3(0, 0, 0);
-		ball.userData.mass = 0.8 + Math.random() * 0.4; // Slightly different masses
-		ball.userData.radius = size; // Store the radius for physics
-		ball.userData.isBall = true; // Flag to identify as a ball
-		console.log(
-			`Added physics properties: mass=${ball.userData.mass.toFixed(
-				2
-			)}, radius=${ball.userData.radius.toFixed(2)}, isBall=true`
-		);
+    // Add physics properties
+    ball.userData.velocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.1, // Small random initial velocity
+      0,
+      (Math.random() - 0.5) * 0.1
+    );
+    ball.userData.acceleration = new THREE.Vector3(0, 0, 0);
+    ball.userData.mass = 0.8 + Math.random() * 0.4; // Slightly different masses
+    ball.userData.radius = size; // Store the radius for physics
+    ball.userData.isBall = true; // Flag to identify as a ball
+    console.log(
+      `Added physics properties: mass=${ball.userData.mass.toFixed(
+        2
+      )}, radius=${ball.userData.radius.toFixed(2)}, isBall=true`
+    );
 
     // Add physical properties for rendering
     ball.castShadow = true;
@@ -1291,9 +1244,7 @@ export class ClawScene {
     console.log(`Ball index in scene children: ${ballIndex}`);
 
     this.toys.push(ball);
-		console.log(
-			`Added ball to toys array. Toys count: ${this.toys.length}`
-		);
+    console.log(`Added ball to toys array. Toys count: ${this.toys.length}`);
 
     // Print all toys for validation
     console.log("Current toys in scene:");
@@ -1322,8 +1273,54 @@ export class ClawScene {
     // Get time since last frame
     const time = this.clock.getElapsedTime();
     // const deltaTime = this.clock.getDelta();
-		const deltaTime = 0.005;
+    const deltaTime = 0.005;
+    if (time >= 30 && !this.gameOver) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 256;
+      const context = canvas.getContext("2d");
 
+      // Draw background (optional)-13, 4, 22.3
+      context.fillStyle = "rgba(0, 0, 0, 0.8)";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Position the sign at the specified coordinates: x = -13, y = 4, z = 22.3
+      // Draw text
+      context.font = "Bold 48px Arial";
+      context.fillStyle = "#ffffff";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(
+        "Game Over! \nScore: " + this.collectedBallsCount,
+        canvas.width / 2,
+        canvas.height / 2
+      );
+
+      // Create a texture from the canvas
+      const texture = new THREE.CanvasTexture(canvas);
+
+      // Create a material using the canvas texture
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+      });
+
+      // Create a plane geometry
+      const geometry = new THREE.PlaneGeometry(5, 2.5);
+
+      // Create the mesh (the sign) and add it to the scene
+      this.sign = new THREE.Mesh(geometry, material);
+      this.scene.add(this.sign);
+      this.sign.position.set(
+        this.camera.position.x - 5,
+        this.camera.position.y - 1,
+        this.camera.position.z
+      );
+      this.gameOver = true;
+    }
+    if (this.sign) {
+      this.sign.lookAt(this.camera.position);
+    }
     // Apply animation mixer update for skeletal animations
     if (this.mixer) {
       this.mixer.update(deltaTime);
@@ -1332,48 +1329,50 @@ export class ClawScene {
     // Update claw position along the Hermite path if animation is active
     if (this.isClawMoving) {
       // Update path parameter based on time
-			if (!this.lowered && !this.inTransitToBox) {
-				this.pathT = Math.min(this.pathT + deltaTime * 0.1, 1.0);
-      if (this.pathT >= 1.0) {
-        // this.isClawMoving = false;
-					this.pathT = 0;
-				}
+      if (!this.lowered && !this.inTransitToBox) {
+        this.pathT = Math.min(this.pathT + deltaTime * 0.1, 1.0);
+        if (this.pathT >= 1.0) {
+          // this.isClawMoving = false;
+          this.pathT = 0;
+        }
       }
 
-			// Move along the path
-			if (!this.customClawGrabbedPrize) {
-				const position = this.clawPath.getPointAt(this.pathT);
-				this.updateClawPosition(position);
-				this.updateCustomClawPosition(position);
-			} else {
-				this.lowerRaise();
-				this.inTransitToBox = true;
-				const positionToReach = new THREE.Vector3(
-					-11.9,
-					this.claw_position.y,
-					24.0
-				);
-				const difference = positionToReach.sub(this.claw_position);
-				const length = difference.length();
-				const difference_norm = difference.normalize();
-				const position = new THREE.Vector3(0, 0, 0);
-				const path_position = this.clawPath.getPointAt(this.pathT);
-				position.addVectors(
-					this.claw_position,
-					difference_norm.multiplyScalar(0.01)
-				);
-				position.y = this.claw_position.y;
-				if (length < 0.01) {
-					this.inTransitToBox = false;
-					this.lowerRaise();
-					this.updateClawPosition(path_position)
-					this.chainSim.reset(path_position);
-				} else {
-					this.updateCustomClawPosition(position);
-					this.customClawEndEffectorVelocity.set(this.chainSim.chainSim.particles[9].vel)
-					this.updateClawPosition(position);
-				}
-			}
+      // Move along the path
+      if (!this.customClawGrabbedPrize) {
+        const position = this.clawPath.getPointAt(this.pathT);
+        this.updateClawPosition(position);
+        this.updateCustomClawPosition(position);
+      } else {
+        this.lowerRaise();
+        this.inTransitToBox = true;
+        const positionToReach = new THREE.Vector3(
+          -11.9,
+          this.claw_position.y,
+          24.0
+        );
+        const difference = positionToReach.sub(this.claw_position);
+        const length = difference.length();
+        const difference_norm = difference.normalize();
+        const position = new THREE.Vector3(0, 0, 0);
+        const path_position = this.clawPath.getPointAt(this.pathT);
+        position.addVectors(
+          this.claw_position,
+          difference_norm.multiplyScalar(0.01)
+        );
+        position.y = this.claw_position.y;
+        if (length < 0.01) {
+          this.inTransitToBox = false;
+          this.lowerRaise();
+          this.updateClawPosition(path_position);
+          this.chainSim.reset(path_position);
+        } else {
+          this.updateCustomClawPosition(position);
+          this.customClawEndEffectorVelocity.set(
+            this.chainSim.chainSim.particles[9].vel
+          );
+          this.updateClawPosition(position);
+        }
+      }
 
       // Update IK if we have a target
       const targetPos = this.clawMechanism.position
@@ -1385,45 +1384,45 @@ export class ClawScene {
     // Update toy physics
     this.updateToyPhysics(deltaTime, time);
 
-		// Check for balls in the glass hole
-		if (this.toys && this.toys.length > 0 && this.glassHoleBounds) {
-			for (const toy of this.toys) {
-				if (toy && toy.userData && toy.userData.isBall) {
-					this.checkBallInGlassHole(toy);
-				}
-			}
-		}
+    // Check for balls in the glass hole
+    if (this.toys && this.toys.length > 0 && this.glassHoleBounds) {
+      for (const toy of this.toys) {
+        if (toy && toy.userData && toy.userData.isBall) {
+          this.checkBallInGlassHole(toy);
+        }
+      }
+    }
 
-		if (this.openingCustomClaw) {
-			if (this.minAngleBend <= this.upperKnuckleBend) {
-				console.log("upper knuckle bend: ", this.upperKnuckleBend);
-				this.rotateCustomClaw(-deltaTime * 2);
-			} else {
-				this.openingCustomClaw = false;
-				this.customClawOpened = true;
-			}
-		} else if (this.closingCustomClaw) {
-			if (this.upperKnuckleBend <= this.maxAngleBend) {
-				this.rotateCustomClaw(deltaTime * 2);
-			} else {
-				this.closingCustomClaw = false;
-				this.customClawClosed = true;
-			}
-		}
-		// if(this.customClawClosed) {
-		//   this.lowerRaise()
-		// }
+    if (this.openingCustomClaw) {
+      if (this.minAngleBend <= this.upperKnuckleBend) {
+        console.log("upper knuckle bend: ", this.upperKnuckleBend);
+        this.rotateCustomClaw(-deltaTime * 2);
+      } else {
+        this.openingCustomClaw = false;
+        this.customClawOpened = true;
+      }
+    } else if (this.closingCustomClaw) {
+      if (this.upperKnuckleBend <= this.maxAngleBend) {
+        this.rotateCustomClaw(deltaTime * 2);
+      } else {
+        this.closingCustomClaw = false;
+        this.customClawClosed = true;
+      }
+    }
+    // if(this.customClawClosed) {
+    //   this.lowerRaise()
+    // }
 
-		// }
-		// Update particle effects for ball removal
-		this.updateRemovalEffects(deltaTime);
+    // }
+    // Update particle effects for ball removal
+    this.updateRemovalEffects(deltaTime);
 
     // Update glass hole text
     this.updateGlassHoleText();
 
-		// Render the scene
-		this.render();
-	}
+    // Render the scene
+    this.render();
+  }
 
   updateToyPhysics(dt, time) {
     // Skip if no toys or physics engine
@@ -1466,9 +1465,7 @@ export class ClawScene {
           console.log(
             `Toy ${index}: ${toy.name} at (${toy.position.x.toFixed(
               1
-						)}, ${toy.position.y.toFixed(
-							1
-						)}, ${toy.position.z.toFixed(1)})`
+            )}, ${toy.position.y.toFixed(1)}, ${toy.position.z.toFixed(1)})`
           );
           console.log(
             `  Velocity: (${toy.userData.velocity.x.toFixed(
@@ -1480,9 +1477,9 @@ export class ClawScene {
           console.log(
             `  Visible: ${
               toy.visible
-						}, In scene: ${this.scene.children.includes(
-							toy
-						)}, Immobile: ${toy.userData.isImmobile || false}`
+            }, In scene: ${this.scene.children.includes(toy)}, Immobile: ${
+              toy.userData.isImmobile || false
+            }`
           );
         }
       });
@@ -1491,28 +1488,27 @@ export class ClawScene {
     }
 
     // First pass - handle ball-to-ball collisions
-		let positions = this.getCustomClawEndEffectorPositions()
+    let positions = this.getCustomClawEndEffectorPositions();
     for (let i = 0; i < this.toys.length; i++) {
-			for(let [idx, finger] of this.fingers.entries()) {
-
-			}
-			for(let [idx, eff] of this.endEffectors.entries()) {
-				if (
-            !this.toys[i].userData ||
-            !eff.children[0].geometry ||
-            !this.toys[i].userData.boundingSphere ||
-            !eff.children[0].geometry.boundingSphere ||
-            !this.toys[i].userData.velocity
-          ) {
-            continue;
-          }
-				this.ballPhysics.handleBallEffectorCollision(
-					this.toys[i],
-					eff,
-					positions[idx],
-					this.chainSim.chainSim.particles[9].vel
-				);
-			}
+      for (let [idx, finger] of this.fingers.entries()) {
+      }
+      for (let [idx, eff] of this.endEffectors.entries()) {
+        if (
+          !this.toys[i].userData ||
+          !eff.children[0].geometry ||
+          !this.toys[i].userData.boundingSphere ||
+          !eff.children[0].geometry.boundingSphere ||
+          !this.toys[i].userData.velocity
+        ) {
+          continue;
+        }
+        this.ballPhysics.handleBallEffectorCollision(
+          this.toys[i],
+          eff,
+          positions[idx],
+          this.chainSim.chainSim.particles[9].vel
+        );
+      }
       for (let j = i + 1; j < this.toys.length; j++) {
         if (this.toys[i] && this.toys[j]) {
           // Check if both toys have needed properties for collision
@@ -1528,10 +1524,7 @@ export class ClawScene {
           }
 
           // Apply the collision handling
-					this.ballPhysics.handleBallCollision(
-						this.toys[i],
-						this.toys[j]
-					);
+          this.ballPhysics.handleBallCollision(this.toys[i], this.toys[j]);
         }
       }
     }
@@ -1582,14 +1575,14 @@ export class ClawScene {
       const sphere = toy.userData.boundingSphere;
       if (!sphere) continue;
 
-			// Always check for glass hole collisions - don't skip based on main collision
-			// This provides stronger guarantee against phasing through walls
-			if (glassBox) {
-				this.ballPhysics.handleGlassHoleCollision(toy, glassBox);
+      // Always check for glass hole collisions - don't skip based on main collision
+      // This provides stronger guarantee against phasing through walls
+      if (glassBox) {
+        this.ballPhysics.handleGlassHoleCollision(toy, glassBox);
 
-				// Also check if it's in the glass hole for tracking purposes
-				this.checkBallInGlassHole(toy);
-			}
+        // Also check if it's in the glass hole for tracking purposes
+        this.checkBallInGlassHole(toy);
+      }
 
       // Safety check - if ball somehow got extremely far away (50 units is huge)
       // This should only happen if there's a bug in the collision detection
@@ -1626,99 +1619,98 @@ export class ClawScene {
           // Apply extra friction to horizontal velocity components
           toy.userData.velocity.x *= 0.7;
           toy.userData.velocity.z *= 0.7;
-				}
-			}
-		}
+        }
+      }
+    }
 
-		// Third pass - see if the claw has grabbed it
-		if (this.customClawClosed) {
-			if (this.toys && this.toys.length > 0) {
-				for (let toy of this.toys) {
-					if (
-						toy &&
-						toy.userData &&
-						toy.userData.boundingSphere &&
-						toy.userData.isBall
-					) {
-						// toy.userData.velocity += this.getCustomClawForceOnBall(toy) / toy.userData.mass
+    // Third pass - see if the claw has grabbed it
+    if (this.customClawClosed) {
+      if (this.toys && this.toys.length > 0) {
+        for (let toy of this.toys) {
+          if (
+            toy &&
+            toy.userData &&
+            toy.userData.boundingSphere &&
+            toy.userData.isBall
+          ) {
+            // toy.userData.velocity += this.getCustomClawForceOnBall(toy) / toy.userData.mass
 
-						let result = this.getCustomClawForceOnBall(toy);
-						let y = this.chainSim.chainSim.particles[9].pos;
-						if (result.y > 5) {
-							// this.lowerRaise()
-							this.customClawGrabbedPrize = true;
+            let result = this.getCustomClawForceOnBall(toy);
+            let y = this.chainSim.chainSim.particles[9].pos;
+            if (result.y > 5) {
+              // this.lowerRaise()
+              this.customClawGrabbedPrize = true;
 
-							const positions =
-								this.getCustomClawEndEffectorPositions();
-							const midpoint = new THREE.Vector3();
+              const positions = this.getCustomClawEndEffectorPositions();
+              const midpoint = new THREE.Vector3();
 
-							positions.forEach((pos) => midpoint.add(pos)); // Sum all positions
-							midpoint.divideScalar(positions.length); // Average the positions
-							// toy.userData.velocity.set(0, y, 0)
-							toy.position.set(...midpoint);
-						}
-						// toy.userData.acceleration.set(result.x, result.y, result.z)
-					}
-				}
-			}
-		}
-	}
+              positions.forEach((pos) => midpoint.add(pos)); // Sum all positions
+              midpoint.divideScalar(positions.length); // Average the positions
+              // toy.userData.velocity.set(0, y, 0)
+              toy.position.set(...midpoint);
+            }
+            // toy.userData.acceleration.set(result.x, result.y, result.z)
+          }
+        }
+      }
+    }
+  }
 
   // Reset a ball's position to be inside the machine
   resetBallPosition(ball) {
-		// Use a verified stable position as our reference point - adjusted to be safely within bounds
-		const stableX = -14.4; // Moved right to avoid left boundary (-14.95)
-		const stableY = 2.9; // Just above the floor level
-		const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
+    // Use a verified stable position as our reference point - adjusted to be safely within bounds
+    const stableX = -14.4; // Moved right to avoid left boundary (-14.95)
+    const stableY = 2.9; // Just above the floor level
+    const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
 
-		// Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
-		const resetPositions = [
-			[stableX, stableY, stableZ], // Row 1, Col 1
-			[stableX, stableY, stableZ + 0.7], // Row 1, Col 2
-			[stableX, stableY, stableZ + 1.4], // Row 1, Col 3
-			[stableX + 0.7, stableY, stableZ], // Row 2, Col 1
-			[stableX + 0.7, stableY, stableZ + 0.7], // Row 2, Col 2
-			[stableX + 0.7, stableY, stableZ + 1.4], // Row 2, Col 3
-			[stableX + 1.4, stableY, stableZ], // Row 3, Col 1
-			[stableX + 1.4, stableY, stableZ + 0.7], // Row 3, Col 2
-		];
+    // Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
+    const resetPositions = [
+      [stableX, stableY, stableZ], // Row 1, Col 1
+      [stableX, stableY, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY, stableZ + 0.7], // Row 3, Col 2
+    ];
 
-		// Get the index based on the ball's name or default to a random position
-		let index = -1;
-		if (ball.name === "RedBall") index = 0;
-		else if (ball.name === "GreenBall") index = 1;
-		else if (ball.name === "BlueBall") index = 2;
-		else if (ball.name === "YellowBall") index = 3;
-		else if (ball.name === "MagentaBall") index = 4;
-		else if (ball.name === "CyanBall") index = 5;
-		else if (ball.name === "OrangeBall") index = 6;
-		else if (ball.name === "PurpleBall") index = 7;
-		else index = Math.floor(Math.random() * resetPositions.length);
+    // Get the index based on the ball's name or default to a random position
+    let index = -1;
+    if (ball.name === "RedBall") index = 0;
+    else if (ball.name === "GreenBall") index = 1;
+    else if (ball.name === "BlueBall") index = 2;
+    else if (ball.name === "YellowBall") index = 3;
+    else if (ball.name === "MagentaBall") index = 4;
+    else if (ball.name === "CyanBall") index = 5;
+    else if (ball.name === "OrangeBall") index = 6;
+    else if (ball.name === "PurpleBall") index = 7;
+    else index = Math.floor(Math.random() * resetPositions.length);
 
-		// Use the indexed position or random if something went wrong
-		const position = resetPositions[index];
+    // Use the indexed position or random if something went wrong
+    const position = resetPositions[index];
 
-		// Add a very small random offset to prevent perfect stacking
-		const offsetX = (Math.random() - 0.5) * 0.05; // Very small offset
-		const offsetY = Math.random() * 0.05; // Very small offset
-		const offsetZ = (Math.random() - 0.5) * 0.05; // Very small offset
+    // Add a very small random offset to prevent perfect stacking
+    const offsetX = (Math.random() - 0.5) * 0.05; // Very small offset
+    const offsetY = Math.random() * 0.05; // Very small offset
+    const offsetZ = (Math.random() - 0.5) * 0.05; // Very small offset
 
-		const x = position[0] + offsetX;
-		const y = position[1] + offsetY;
-		const z = position[2] + offsetZ;
+    const x = position[0] + offsetX;
+    const y = position[1] + offsetY;
+    const z = position[2] + offsetZ;
 
-		// Set the new position
-		ball.position.set(x, y, z);
+    // Set the new position
+    ball.position.set(x, y, z);
 
-		// Reset velocity to ZERO
-      ball.userData.velocity.set(0, 0, 0);
+    // Reset velocity to ZERO
+    ball.userData.velocity.set(0, 0, 0);
 
     // Update bounding sphere
-		if (ball.userData.boundingSphere) {
+    if (ball.userData.boundingSphere) {
       ball.userData.boundingSphere.center.copy(ball.position);
     }
 
-		return ball.position.clone();
+    return ball.position.clone();
   }
 
   render() {
@@ -1728,9 +1720,7 @@ export class ClawScene {
       let fixedCount = 0;
       this.toys.forEach((toy) => {
         if (toy && !toy.visible) {
-					console.warn(
-						`Found invisible ball: ${toy.name} - Making it visible`
-					);
+          console.warn(`Found invisible ball: ${toy.name} - Making it visible`);
           toy.visible = true;
           toy.material.visible = true;
           toy.material.needsUpdate = true;
@@ -1760,14 +1750,14 @@ export class ClawScene {
   }
 
   resetSimulation() {
-		this.pathT = 0;
-		this.updateClawPosition(this.init_claw_pos);
+    this.pathT = 0;
+    this.updateClawPosition(this.init_claw_pos);
     this.chainSim.reset();
 
     // Reset claw position
     this.clawPath.currentCurveIndex = 0;
     this.clawPath.currentParameter = 0;
-		// const pathPosition = this.clawPath.getCurrentPoint();
+    // const pathPosition = this.clawPath.getCurrentPoint();
   }
 
   toggleGravity() {
@@ -1780,9 +1770,7 @@ export class ClawScene {
   // Toggle claw movement
   moveClaw() {
     this.isClawMoving = !this.isClawMoving;
-		console.log(
-			`Claw movement ${this.isClawMoving ? "started" : "stopped"}`
-		);
+    console.log(`Claw movement ${this.isClawMoving ? "started" : "stopped"}`);
 
     // Reset parameters when starting movement
     if (this.isClawMoving && this.clawPath) {
@@ -1798,87 +1786,87 @@ export class ClawScene {
       }
     }
   }
-	updateCustomClawPosition(position) {
-		if (
-			this.chainSim &&
-			this.chainSim.chainSim &&
-			this.chainSim.chainSim.particles &&
-			this.chainSim.chainSim.particles.length > 0
-		) {
-			this.chainSim.chainSim.particles[0].pos.copy(position);
-			this.chainSim.chainSim.particles[0].updateMesh();
+  updateCustomClawPosition(position) {
+    if (
+      this.chainSim &&
+      this.chainSim.chainSim &&
+      this.chainSim.chainSim.particles &&
+      this.chainSim.chainSim.particles.length > 0
+    ) {
+      this.chainSim.chainSim.particles[0].pos.copy(position);
+      this.chainSim.chainSim.particles[0].updateMesh();
 
-			// Update all springs
-			for (const spring of this.chainSim.chainSim.springs) {
-				spring.updateLine();
-			}
-			this.chainSim.update(0.03);
-			this.customClawPosition = this.chainSim.chainSim.particles[9].pos;
-		}
-		this.clawNode.position.set(...this.customClawPosition);
-	}
-	rotateCustomClaw(theta) {
-		console.log("rotating custom claw:");
-		this.upperKnuckleBend += theta;
-		for (let knuckle of this.clawNode.children) {
-			if (knuckle.type === "Group") {
-				knuckle.rotation.z = -this.upperKnuckleBend;
-			}
-		}
-	}
-	toggleClaw() {
-		if (this.customClawClosed) {
-			this.openCustomClaw();
-		}
-		if (this.customClawOpened) {
-			this.closeCustomClaw();
-		}
-	}
-	closeCustomClaw() {
-		this.closingCustomClaw = true;
-		this.openingCustomClaw = false;
-		this.customClawOpened = false;
-	}
-	openCustomClaw() {
-		this.closingCustomClaw = false;
-		this.openingCustomClaw = true;
-		this.customClawClosed = false;
-	}
-	lowerRaise() {
-		if (this.inTransitToBox) return;
-		if (this.lowered) {
-			console.log("Raising Claw");
-			this.chainSim.chainSim.springs[
-				this.chainSim.chainSim.springs.length - 1
-			].ks = 500;
-			this.chainSim.chainSim.springs[
-				this.chainSim.chainSim.springs.length - 1
-			].kd = 300;
-			// lowered and didn't grab a prize -> can open
-			if (!this.customClawGrabbedPrize) {
-				this.openCustomClaw();
-			}
-			this.lowered = !this.lowered;
-			this.chainSim.chainSim.lowered = this.lowered;
-		} else {
-			// if the claw is high and has a prize, there's no need to drop it -> simply open the claw
-			if (!this.customClawGrabbedPrize) {
-				console.log("Lowering Claw");
-				this.chainSim.chainSim.springs[
-					this.chainSim.chainSim.springs.length - 1
-				].ks = 5;
-				this.chainSim.chainSim.springs[
-					this.chainSim.chainSim.springs.length - 1
-				].kd = 10;
-				this.lowered = !this.lowered;
-				this.chainSim.chainSim.lowered = this.lowered;
-				this.closeCustomClaw();
-			} else {
-				this.openCustomClaw();
-				this.customClawGrabbedPrize = false;
-			}
-		}
-	}
+      // Update all springs
+      for (const spring of this.chainSim.chainSim.springs) {
+        spring.updateLine();
+      }
+      this.chainSim.update(0.03);
+      this.customClawPosition = this.chainSim.chainSim.particles[9].pos;
+    }
+    this.clawNode.position.set(...this.customClawPosition);
+  }
+  rotateCustomClaw(theta) {
+    console.log("rotating custom claw:");
+    this.upperKnuckleBend += theta;
+    for (let knuckle of this.clawNode.children) {
+      if (knuckle.type === "Group") {
+        knuckle.rotation.z = -this.upperKnuckleBend;
+      }
+    }
+  }
+  toggleClaw() {
+    if (this.customClawClosed) {
+      this.openCustomClaw();
+    }
+    if (this.customClawOpened) {
+      this.closeCustomClaw();
+    }
+  }
+  closeCustomClaw() {
+    this.closingCustomClaw = true;
+    this.openingCustomClaw = false;
+    this.customClawOpened = false;
+  }
+  openCustomClaw() {
+    this.closingCustomClaw = false;
+    this.openingCustomClaw = true;
+    this.customClawClosed = false;
+  }
+  lowerRaise() {
+    if (this.inTransitToBox) return;
+    if (this.lowered) {
+      console.log("Raising Claw");
+      this.chainSim.chainSim.springs[
+        this.chainSim.chainSim.springs.length - 1
+      ].ks = 500;
+      this.chainSim.chainSim.springs[
+        this.chainSim.chainSim.springs.length - 1
+      ].kd = 300;
+      // lowered and didn't grab a prize -> can open
+      if (!this.customClawGrabbedPrize) {
+        this.openCustomClaw();
+      }
+      this.lowered = !this.lowered;
+      this.chainSim.chainSim.lowered = this.lowered;
+    } else {
+      // if the claw is high and has a prize, there's no need to drop it -> simply open the claw
+      if (!this.customClawGrabbedPrize) {
+        console.log("Lowering Claw");
+        this.chainSim.chainSim.springs[
+          this.chainSim.chainSim.springs.length - 1
+        ].ks = 5;
+        this.chainSim.chainSim.springs[
+          this.chainSim.chainSim.springs.length - 1
+        ].kd = 10;
+        this.lowered = !this.lowered;
+        this.chainSim.chainSim.lowered = this.lowered;
+        this.closeCustomClaw();
+      } else {
+        this.openCustomClaw();
+        this.customClawGrabbedPrize = false;
+      }
+    }
+  }
 
   // Calculate distance between two points
   distance(v1, v2) {
@@ -1994,11 +1982,11 @@ export class ClawScene {
 
   // Solve the inverse kinematics using the Jacobian Transpose method
   // solveIK(targetPosition) {
-	// 	if (
-	// 		!this.ikEnabled ||
-	// 		this.ikJoints.length === 0 ||
-	// 		!this.ikEndEffector
-	// 	) {
+  // 	if (
+  // 		!this.ikEnabled ||
+  // 		this.ikJoints.length === 0 ||
+  // 		!this.ikEndEffector
+  // 	) {
   //     return false;
   //   }
 
@@ -2047,10 +2035,10 @@ export class ClawScene {
   //       );
 
   //       // Calculate the cross product to find the direction of influence
-	// 			const cross = new THREE.Vector3().crossVectors(
-	// 				jointAxis,
-	// 				leverArm
-	// 			);
+  // 			const cross = new THREE.Vector3().crossVectors(
+  // 				jointAxis,
+  // 				leverArm
+  // 			);
 
   //       // Calculate how much to rotate this joint (dot product with error)
   //       let rotationAmount = cross.dot(error) * IK_DAMPING;
@@ -2070,10 +2058,10 @@ export class ClawScene {
   //       if (Math.abs(rotationAmount) > 0.001) {
   //         // Create a rotation quaternion around the joint axis
   //         const rotationQuat = new THREE.Quaternion();
-	// 				rotationQuat.setFromAxisAngle(
-	// 					jointData.axis,
-	// 					rotationAmount
-	// 				);
+  // 				rotationQuat.setFromAxisAngle(
+  // 					jointData.axis,
+  // 					rotationAmount
+  // 				);
 
   //         // Apply the rotation to the joint
   //         joint.quaternion.premultiply(rotationQuat);
@@ -2112,27 +2100,22 @@ export class ClawScene {
 
     // Check if near floor
     if (
-			Math.abs(toy.position.y - radius - this.machineBounds.min.y) <
-			epsilon
+      Math.abs(toy.position.y - radius - this.machineBounds.min.y) < epsilon
     ) {
       return true;
     }
 
     // Check if near walls
     if (
-			Math.abs(toy.position.x - radius - this.machineBounds.min.x) <
-				epsilon ||
-			Math.abs(toy.position.x + radius - this.machineBounds.max.x) <
-				epsilon
+      Math.abs(toy.position.x - radius - this.machineBounds.min.x) < epsilon ||
+      Math.abs(toy.position.x + radius - this.machineBounds.max.x) < epsilon
     ) {
       return true;
     }
 
     if (
-			Math.abs(toy.position.z - radius - this.machineBounds.min.z) <
-				epsilon ||
-			Math.abs(toy.position.z + radius - this.machineBounds.max.z) <
-				epsilon
+      Math.abs(toy.position.z - radius - this.machineBounds.min.z) < epsilon ||
+      Math.abs(toy.position.z + radius - this.machineBounds.max.z) < epsilon
     ) {
       return true;
     }
@@ -2152,7 +2135,7 @@ export class ClawScene {
 
     // If no toys are found, recreate them
     if (!this.toys || this.toys.length === 0) {
-			console.warn("No toys found, recreating balls");
+      console.warn("No toys found, recreating balls");
       this.createDirectBalls();
       return;
     }
@@ -2164,18 +2147,14 @@ export class ClawScene {
             object.name
           } - Current position: (${object.position.x.toFixed(
             2
-					)}, ${object.position.y.toFixed(
+          )}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(
             2
-					)}, ${object.position.z.toFixed(2)}), Visible: ${
-						object.visible
-					}`
+          )}), Visible: ${object.visible}`
         );
 
         // Ensure the ball is visible
         if (!object.visible) {
-					console.warn(
-						`Ball ${object.name} was invisible - making it visible`
-					);
+          console.warn(`Ball ${object.name} was invisible - making it visible`);
           object.visible = true;
           object.material.visible = true;
           object.material.needsUpdate = true;
@@ -2214,9 +2193,7 @@ export class ClawScene {
       console.warn("No balls found to randomize, recreating all balls");
       this.createDirectBalls();
     } else {
-			console.log(
-				`Randomized ${ballCount} balls, ${visibleCount} are visible`
-			);
+      console.log(`Randomized ${ballCount} balls, ${visibleCount} are visible`);
     }
 
     console.log("==== RANDOMIZATION COMPLETE ====");
@@ -2296,9 +2273,7 @@ export class ClawScene {
       this.scene.add(this.clawPath.pathGroup);
     }
 
-		console.log(
-			`Created claw path with ${this.clawPath.curves.length} curves`
-		);
+    console.log(`Created claw path with ${this.clawPath.curves.length} curves`);
   }
 
   // Handle collision with barrier
@@ -2351,9 +2326,7 @@ export class ClawScene {
   // This method needs to be called when a ball is grabbed by the claw
   enableBallPhysics(ball) {
     if (ball && ball.userData) {
-			console.log(
-				`Enabling physics for ${ball.name} - ball is now mobile`
-			);
+      console.log(`Enabling physics for ${ball.name} - ball is now mobile`);
       ball.userData.isImmobile = false;
       ball.userData.isGrabbed = true;
     }
@@ -2362,9 +2335,7 @@ export class ClawScene {
   // This method would be called when a ball is released from the claw
   releaseBall(ball) {
     if (ball && ball.userData) {
-			console.log(
-				`Released ${ball.name} - ball will follow normal physics`
-			);
+      console.log(`Released ${ball.name} - ball will follow normal physics`);
       ball.userData.isGrabbed = false;
       // Don't reset isImmobile - let it follow physics until it comes to rest or is reset
     }

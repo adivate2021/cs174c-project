@@ -2,53 +2,52 @@
 index.html - The web page document containing the canvas (drawing surface).  It launches your JavaScript files. //-->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Three.js Simulation</title>
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background-color: #333; 
-        }
-        canvas { 
-            display: block; 
-        }
-        .info-panel {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: Arial, sans-serif;
-        }
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            margin: 5px;
-        }
-        button:hover {
-            background: #45a049;
-        }
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #333;
+      }
+      canvas {
+        display: block;
+      }
+      .info-panel {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: Arial, sans-serif;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #45a049;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="info-panel">
-        <h3>CS174C Project - Three.js Version</h3>
-        <div id="controls">
-            <!-- Controls will be added dynamically -->
-        </div>
+      <h3>Claw Machine</h3>
+      <div id="controls">
+        <!-- Controls will be added dynamically -->
+      </div>
     </div>
-    
+
     <!-- Import application code using Vite's module handling -->
     <script type="module" src="/main.js"></script>
-</body>
+  </body>
 </html>
-	
