@@ -688,192 +688,62 @@ export class BallPhysics {
         
         let hasCollision = false;
         
-        // Special checks to prevent balls from teleporting inside the box
-        // First, determine if the ball is predominantly outside or inside the box
-        
-        // Calculate distance to each wall (negative means inside)
-        const distanceToLeftWall = position.x - radius - glassBox.min.x;
-        const distanceToRightWall = glassBox.max.x - (position.x + radius);
-        const distanceToBottomWall = position.y - radius - glassBox.min.y;
-        const distanceToFrontWall = glassBox.max.z - (position.z + radius);
-        const distanceToBackWall = position.z - radius - glassBox.min.z;
-        
-        // Count how many walls the ball is outside of
-        let wallsOutside = 0;
-        if (distanceToLeftWall < 0) wallsOutside++;
-        if (distanceToRightWall < 0) wallsOutside++;
-        if (distanceToBottomWall < 0) wallsOutside++;
-        if (distanceToFrontWall < 0) wallsOutside++;
-        if (distanceToBackWall < 0) wallsOutside++;
-        
-        // If ball is outside most walls, it's predominantly outside
-        const isPredominantlyOutside = wallsOutside >= 3;
-        
-        // Determine if ball is already completely inside
-        const isCompletelyInside = (
-            position.x - radius > glassBox.min.x &&
-            position.x + radius < glassBox.max.x &&
-            position.y - radius > glassBox.min.y &&
-            position.z - radius > glassBox.min.z &&
-            position.z + radius < glassBox.max.z
-        );
-        
-        // For balls predominantly outside, only allow them in through the top
-        if (isPredominantlyOutside && !isCompletelyInside) {
-            // Handle LEFT wall collision - balls outside should bounce off
-            if (position.x - radius < glassBox.min.x && 
-                position.y >= glassBox.min.y && 
-                position.y <= glassBox.max.y && 
-                position.z >= glassBox.min.z && 
-                position.z <= glassBox.max.z) {
+        if (this.sphereIntersectsBox(ball.position, radius, glassBox)) {
+            hasCollision = true;
+            
+            // Find the closest point on the box to the sphere center
+            const closestPoint = new THREE.Vector3();
+            closestPoint.x = Math.max(glassBox.min.x, Math.min(ball.position.x, glassBox.max.x));
+            closestPoint.y = Math.max(glassBox.min.y, Math.min(ball.position.y, glassBox.max.y));
+            closestPoint.z = Math.max(glassBox.min.z, Math.min(ball.position.z, glassBox.max.z));
+            
+            // Calculate penetration direction and depth
+            const penetrationDir = new THREE.Vector3().subVectors(ball.position, closestPoint).normalize();
+            const penetrationDepth = radius - ball.position.distanceTo(closestPoint);
+            
+            if (penetrationDepth > 0) {
+                // Move the ball out of the box along penetration direction
+                ball.position.addScaledVector(penetrationDir, penetrationDepth + 0.001);
                 
-                // Only handle collision if approaching from outside
-                if (velocity.x < 0) {
-                    hasCollision = true;
-                    // Push completely outside the wall
-                    ball.position.x = glassBox.min.x + radius + 0.01;
-                    // Reverse x velocity with damping
-                    velocity.x = -velocity.x * 0.7;
+                // Update sphere position
+                sphere.center.copy(ball.position);
+                
+                // Calculate spring force
+                const springForce = penetrationDepth * this.wallSpringConstant;
+                
+                // Calculate damping force based on velocity component into wall
+                const velocityAlongNormal = velocity.dot(penetrationDir);
+                const dampingForce = Math.max(0, velocityAlongNormal) * this.wallDampingConstant;
+                
+                // Calculate total force
+                const totalForce = springForce + dampingForce;
+                
+                // Calculate acceleration
+                const acceleration = totalForce / (ball.userData.mass || 1);
+                
+                // Apply impulse along penetration direction
+                velocity.addScaledVector(penetrationDir, -acceleration * this.dt);
+                
+                // Apply friction along tangential components
+                // Create a basis with penetrationDir as one axis
+                const tangent1 = new THREE.Vector3();
+                const tangent2 = new THREE.Vector3();
+                
+                // Find perpendicular vectors to the normal
+                if (Math.abs(penetrationDir.x) < Math.abs(penetrationDir.y)) {
+                    tangent1.set(1, 0, 0).sub(penetrationDir.clone().multiplyScalar(penetrationDir.x)).normalize();
+                } else {
+                    tangent1.set(0, 1, 0).sub(penetrationDir.clone().multiplyScalar(penetrationDir.y)).normalize();
                 }
-            }
-            
-            // Handle RIGHT wall collision - balls outside should bounce off
-            if (position.x + radius > glassBox.max.x && 
-                position.y >= glassBox.min.y && 
-                position.y <= glassBox.max.y && 
-                position.z >= glassBox.min.z && 
-                position.z <= glassBox.max.z) {
+                tangent2.crossVectors(penetrationDir, tangent1).normalize();
                 
-                // Only handle collision if approaching from outside
-                if (velocity.x > 0) {
-                    hasCollision = true;
-                    // Push completely outside the wall
-                    ball.position.x = glassBox.max.x - radius - 0.01;
-                    // Reverse x velocity with damping
-                    velocity.x = -velocity.x * 0.7;
-                }
-            }
-            
-            // Handle FRONT wall collision - balls outside should bounce off
-            if (position.z + radius > glassBox.max.z && 
-                position.y >= glassBox.min.y && 
-                position.y <= glassBox.max.y && 
-                position.x >= glassBox.min.x && 
-                position.x <= glassBox.max.x) {
+                // Apply friction to the tangential components
+                //this.applyFriction(velocity, penetrationDir, ball.userData.mass || 1);
                 
-                // Only handle collision if approaching from outside
-                if (velocity.z > 0) {
-                    hasCollision = true;
-                    // Push completely outside the wall
-                    ball.position.z = glassBox.max.z - radius - 0.01;
-                    // Reverse z velocity with damping
-                    velocity.z = -velocity.z * 0.7;
-                }
-            }
-            
-            // Handle BACK wall collision - balls outside should bounce off
-            if (position.z - radius < glassBox.min.z && 
-                position.y >= glassBox.min.y && 
-                position.y <= glassBox.max.y && 
-                position.x >= glassBox.min.x && 
-                position.x <= glassBox.max.x) {
-                
-                // Only handle collision if approaching from outside
-                if (velocity.z < 0) {
-                    hasCollision = true;
-                    // Push completely outside the wall
-                    ball.position.z = glassBox.min.z + radius + 0.01;
-                    // Reverse z velocity with damping
-                    velocity.z = -velocity.z * 0.7;
-                }
-            }
-            
-            // Handle BOTTOM wall collision - balls outside should bounce off
-            if (position.y - radius < glassBox.min.y && 
-                position.x >= glassBox.min.x && 
-                position.x <= glassBox.max.x && 
-                position.z >= glassBox.min.z && 
-                position.z <= glassBox.max.z) {
-                
-                // Only handle collision if approaching from outside
-                if (velocity.y < 0) {
-                    hasCollision = true;
-                    // Push completely outside the wall
-                    ball.position.y = glassBox.min.y + radius + 0.01;
-                    // Reverse y velocity with damping
-                    velocity.y = -velocity.y * 0.5; // Less bouncy on floor
-                    
-                    // Apply floor friction
-                    velocity.x *= 0.9;
-                    velocity.z *= 0.9;
-                }
-            }
-        } else {
-            // For balls predominantly inside, handle containment normally
-            
-            // LEFT wall (X-min) - only if inside already
-            if (position.x - radius < glassBox.min.x) {
-                hasCollision = true;
-                // Position correction
-                // ball.position.x = glassBox.min.x + radius + 0.01;
-                // // Reverse velocity with damping
-                // velocity.x = Math.abs(velocity.x) * 0.7;
-            }
-            
-            // RIGHT wall (X-max) - only if inside already
-            if (position.x + radius > glassBox.max.x) {
-                hasCollision = true;
-                // Position correction
-                // ball.position.x = glassBox.max.x - radius - 0.01;
-                // // Reverse velocity with damping
-                // velocity.x = -Math.abs(velocity.x) * 0.7;
-            }
-            
-            // BOTTOM wall (Y-min) - only if inside already
-            if (position.y - radius < glassBox.min.y) {
-                hasCollision = true;
-                // Position correction
-                ball.position.y = glassBox.min.y + radius + 0.01;
-                // Reverse velocity with damping
-                velocity.y = Math.abs(velocity.y) * 0.5; // Less bouncy
-                
-                // Add extra damping when on floor
-                velocity.x *= 0.92;
-                velocity.z *= 0.92;
-            }
-            
-            // FRONT wall (Z-max) - only if inside already
-            if (position.z + radius > glassBox.max.z) {
-                hasCollision = true;
-                // Position correction
-                // ball.position.z = glassBox.max.z - radius - 0.01;
-                // // Reverse velocity with damping
-                // velocity.z = -Math.abs(velocity.z) * 0.7;
-            }
-            
-            // BACK wall (Z-min) - only if inside already
-            if (position.z - radius < glassBox.min.z) {
-                hasCollision = true;
-                // Position correction
-                // ball.position.z = glassBox.min.z + radius + 0.01;
-                // // Reverse velocity with damping
-                // velocity.z = Math.abs(velocity.z) * 0.7;
+                // Apply additional damping for stability
+                velocity.multiplyScalar(0.98);
             }
         }
-        
-        // Apply additional damping on collision
-        if (hasCollision) {
-            velocity.multiplyScalar(0.97);
-            
-            // Add tiny jitter to prevent sticking
-            if (velocity.lengthSq() < 0.1) {
-                velocity.x += (Math.random() - 0.5) * 0.03;
-                velocity.z += (Math.random() - 0.5) * 0.03;
-            }
-        }
-        
-        // Update the bounding sphere position
-        sphere.center.copy(ball.position);
         
         return hasCollision;
     }
