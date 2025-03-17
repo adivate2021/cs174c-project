@@ -169,9 +169,9 @@ function loadClawMachineModel(scene) {
 
       // Set up the claw machine parts based on the provided coordinates
       setupClawMachine(scene, gltf.scene, {
-        x: -13.05,
-        y: 1.6,
-        z: 22.8,
+        x: -5.9,
+        y: 1.8,
+        z: 10.3,
       });
     },
     function (xhr) {

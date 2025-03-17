@@ -456,9 +456,9 @@ export class ClawScene {
     this.createLargeBarrier();
 
     // Use a verified stable position as our reference point - adjusted to be safely within bounds
-    const stableX = -14.4; // Moved right to avoid left boundary (-14.95)
+    const stableX = -5.0; // Moved right to avoid left boundary (-14.95)
     const stableY = 2.9; // Just above the floor level
-    const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
+    const stableZ = 9.0; // Moved forward to avoid back boundary (20.9)
 
     // Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
     const ballAbsolutePositions = [
@@ -474,27 +474,141 @@ export class ClawScene {
 
     // Vibrant colors for the balls
     const ballColors = [
-      0xff0000, // Bright red
-      0x00ff00, // Bright green
-      0x0000ff, // Bright blue
-      0xffff00, // Bright yellow
-      0xff00ff, // Bright magenta
-      0x00ffff, // Cyan
-      0xff8000, // Orange
-      0x8000ff, // Purple
+      [stableX, stableY, stableZ], // Row 1, Col 1
+      [stableX, stableY, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY, stableZ + 0.7], // Row 3, Col 2
+      [stableX, stableY + 0.5, stableZ], // Row 1, Col 1
+      [stableX, stableY + 0.5, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY + 0.5, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY + 0.5, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY + 0.5, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY + 0.5, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY + 0.5, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 0.5, stableZ + 0.7], // Row 3, Col 2
+      [stableX, stableY + 1.0, stableZ], // Row 1, Col 1
+      [stableX, stableY + 1.0, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY + 1.0, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY + 1.0, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY + 1.0, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY + 1.0, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY + 1.0, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 1.0, stableZ + 0.7], // Row 3, Col 2
+      [stableX, stableY + 1.5, stableZ], // Row 1, Col 1
+      [stableX, stableY + 1.5, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY + 1.5, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY + 1.5, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY + 1.5, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY + 1.5, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY + 1.5, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 1.5, stableZ + 0.7] // Row 3, Col 2
+
+      [stableX, stableY + 2.0, stableZ], // Row 1, Col 1
+      [stableX, stableY + 2.0, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY + 2.0, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY + 2.0, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY + 2.0, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY + 2.0, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY + 2.0, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 2.0, stableZ + 0.7], // Row 3, Col 2
+      [stableX, stableY + 2.5, stableZ], // Row 1, Col 1
+      [stableX, stableY + 2.5, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY + 2.5, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY + 2.5, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY + 2.5, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY + 2.5, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY + 2.5, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 2.5, stableZ + 0.7], // Row 3, Col 2
+      [stableX, stableY + 3.0, stableZ], // Row 1, Col 1
+      [stableX, stableY + 3.0, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY + 3.0, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY + 3.0, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY + 3.0, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY + 3.0, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY + 3.0, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 3.0, stableZ + 0.7], // Row 3, Col 2
+      [stableX, stableY + 3.5, stableZ], // Row 1, Col 1
+      [stableX, stableY + 3.5, stableZ + 0.7], // Row 1, Col 2
+      [stableX, stableY + 3.5, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.7, stableY + 3.5, stableZ], // Row 2, Col 1
+      [stableX + 0.7, stableY + 3.5, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.7, stableY + 3.5, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.4, stableY + 3.5, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 3.5, stableZ + 0.7] // Row 3, Col 2
+      // ------------------------------------------------------------
+      [stableX + 0.1, stableY, stableZ], // Row 1, Col 1
+      [stableX + 0.1, stableY, stableZ + 0.7], // Row 1, Col 2
+      [stableX + 0.1, stableY, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.8, stableY, stableZ], // Row 2, Col 1
+      [stableX + 0.8, stableY, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.8, stableY, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.5, stableY, stableZ], // Row 3, Col 1
+      [stableX + 1.5, stableY, stableZ + 0.7], // Row 3, Col 2
+      [stableX + 1.5, stableY + 0.5, stableZ], // Row 1, Col 1
+      [stableX + 1.5, stableY + 0.5, stableZ + 0.7], // Row 1, Col 2
+      [stableX + 1.5, stableY + 0.5, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.8, stableY + 0.5, stableZ], // Row 2, Col 1
+      [stableX + 0.8, stableY + 0.5, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.8, stableY + 0.5, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.5, stableY + 0.5, stableZ], // Row 3, Col 1
+      [stableX + 1.4, stableY + 0.5, stableZ + 0.7], // Row 3, Col 2
+      [stableX + 0.1, stableY + 1.0, stableZ], // Row 1, Col 1
+      [stableX + 0.1, stableY + 1.0, stableZ + 0.7], // Row 1, Col 2
+      [stableX + 0.1, stableY + 1.0, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.8, stableY + 1.0, stableZ], // Row 2, Col 1
+      [stableX + 0.8, stableY + 1.0, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.8, stableY + 1.0, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.5, stableY + 1.0, stableZ], // Row 3, Col 1
+      [stableX + 1.5, stableY + 1.0, stableZ + 0.7], // Row 3, Col 2
+      [stableX + 0.1, stableY + 1.5, stableZ], // Row 1, Col 1
+      [stableX + 0.1, stableY + 1.5, stableZ + 0.7], // Row 1, Col 2
+      [stableX + 0.1, stableY + 1.5, stableZ + 1.4], // Row 1, Col 3
+      [stableX + 0.8, stableY + 1.5, stableZ], // Row 2, Col 1
+      [stableX + 0.8, stableY + 1.5, stableZ + 0.7], // Row 2, Col 2
+      [stableX + 0.8, stableY + 1.5, stableZ + 1.4], // Row 2, Col 3
+      [stableX + 1.5, stableY + 1.5, stableZ], // Row 3, Col 1
+      [stableX + 1.5, stableY + 1.5, stableZ + 0.7] // Row 3, Col 2
+
+      [stableX, stableY + 2.0, stableZ - 0.2], // Row 1, Col 1
+      [stableX, stableY + 2.0, stableZ + 0.5], // Row 1, Col 2
+      [stableX, stableY + 2.0, stableZ + 1.2], // Row 1, Col 3
+      [stableX + 0.7, stableY + 2.0, stableZ - 0.2], // Row 2, Col 1
+      [stableX + 0.7, stableY + 2.0, stableZ + 0.5], // Row 2, Col 2
+      [stableX + 0.7, stableY + 2.0, stableZ + 1.2], // Row 2, Col 3
+      [stableX + 1.4, stableY + 2.0, stableZ - 0.2], // Row 3, Col 1
+      [stableX + 1.4, stableY + 2.0, stableZ + 0.5], // Row 3, Col 2
+      [stableX, stableY + 2.5, stableZ - 0.2], // Row 1, Col 1
+      [stableX, stableY + 2.5, stableZ + 0.5], // Row 1, Col 2
+      [stableX, stableY + 2.5, stableZ + 1.2], // Row 1, Col 3
+      [stableX + 0.7, stableY + 2.5, stableZ - 0.2], // Row 2, Col 1
+      [stableX + 0.7, stableY + 2.5, stableZ + 0.5], // Row 2, Col 2
+      [stableX + 0.7, stableY + 2.5, stableZ + 1.2], // Row 2, Col 3
+      [stableX + 1.4, stableY + 2.5, stableZ - 0.2], // Row 3, Col 1
+      [stableX + 1.4, stableY + 2.5, stableZ + 0.5], // Row 3, Col 2
+      [stableX, stableY + 3.0, stableZ - 0.2], // Row 1, Col 1
+      [stableX, stableY + 3.0, stableZ + 0.5], // Row 1, Col 2
+      [stableX, stableY + 3.0, stableZ + 1.2], // Row 1, Col 3
+      [stableX + 0.7, stableY + 3.0, stableZ - 0.2], // Row 2, Col 1
+      [stableX + 0.7, stableY + 3.0, stableZ + 0.5], // Row 2, Col 2
+      [stableX + 0.7, stableY + 3.0, stableZ + 1.2], // Row 2, Col 3
+      [stableX + 1.4, stableY + 3.0, stableZ - 0.2], // Row 3, Col 1
+      [stableX + 1.4, stableY + 3.0, stableZ + 0.5], // Row 3, Col 2
+      [stableX, stableY + 3.5, stableZ - 0.2], // Row 1, Col 1
+      [stableX, stableY + 3.5, stableZ + 0.5], // Row 1, Col 2
+      [stableX, stableY + 3.5, stableZ + 1.2], // Row 1, Col 3
+      [stableX + 0.7, stableY + 3.5, stableZ - 0.2], // Row 2, Col 1
+      [stableX + 0.7, stableY + 3.5, stableZ + 0.5], // Row 2, Col 2
+      [stableX + 0.7, stableY + 3.5, stableZ + 1.2], // Row 2, Col 3
+      [stableX + 1.4, stableY + 3.5, stableZ - 0.2], // Row 3, Col 1
+      [stableX + 1.4, stableY + 3.5, stableZ + 0.5] // Row 3, Col 2
     ];
 
     // Ball names
-    const ballNames = [
-      "RedBall",
-      "GreenBall",
-      "BlueBall",
-      "YellowBall",
-      "MagentaBall",
-      "CyanBall",
-      "OrangeBall",
-      "PurpleBall",
-    ];
+    const ballNames = this.generateRandomColors(ballAbsolutePositions.length);
 
     // Create each ball with a shiny material
     for (let i = 0; i < ballAbsolutePositions.length; i++) {
@@ -504,7 +618,7 @@ export class ClawScene {
         position,
         ballColors[i],
         ballNames[i],
-        0.25 + i * 0.03, // Slightly different sizes
+        0.25 + Math.random() * 0.05, // Slightly different sizes
         true // This is an absolute position
       );
 
@@ -530,6 +644,44 @@ export class ClawScene {
 
     return this.toys.length;
   }
+
+  generateRandomColors(size = 10) {
+    const colors = [];
+  
+    for (let i = 0; i < size; i++) {
+      // Generate random RGB values
+      let r, g, b;
+      let highChannel = false;
+      let saturation = 0;
+      
+      // For vibrant colors, ensure at least one channel is high
+      // and the overall saturation is sufficient
+      do {
+        r = Math.random();
+        g = Math.random();
+        b = Math.random();
+        
+        // Ensure at least one channel is high (> 0.7)
+        highChannel = Math.max(r, g, b) > 0.7;
+        
+        // Calculate saturation: (max-min)/max
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        saturation = max === 0 ? 0 : (max - min) / max;
+        
+        // Retry if not vibrant enough
+      } while (!(highChannel && saturation > 0.5));
+  
+      const hexColor = '#' + 
+        Math.floor(r * 255).toString(16).padStart(2, '0') + 
+        Math.floor(g * 255).toString(16).padStart(2, '0') + 
+        Math.floor(b * 255).toString(16).padStart(2, '0');
+      colors.push(hexColor);
+    }
+    
+    return colors;
+  }
+
 
   // Create a larger barrier wall to separate the glass hole area
   createLargeBarrier() {
@@ -568,7 +720,7 @@ export class ClawScene {
     this.clawMachinePosition = clawPosition.clone();
 
     // Create bounds around the provided claw machine position
-    const boundsSize = 1.9; // Size of the bounding box (half-width)
+    const boundsSize = 1.8; // Size of the bounding box (half-width)
     const boundsHeight = 5.0; // Height of the bounding box
 
     // The floor of the claw machine is visually at Y = 2.1 (clawPosition.y + 0.5)
@@ -666,15 +818,15 @@ export class ClawScene {
     // Creating a direct THREE.Box3 for debugging first
     const glassBox = new THREE.Box3(
       new THREE.Vector3(
-        clawPosition.x + xOffset - holeWidth / 2,
-        holeY,
-        clawPosition.z + zOffset - holeDepth / 2
-      ),
-      new THREE.Vector3(
-        clawPosition.x + xOffset + holeWidth / 2,
-        holeY + holeHeight,
-        clawPosition.z + zOffset + holeDepth / 2
-      )
+				clawPosition.x - xOffset - holeWidth / 2,
+				holeY,
+				clawPosition.z + zOffset - holeDepth / 2
+			),
+			new THREE.Vector3(
+				clawPosition.x - xOffset + holeWidth / 2,
+				holeY + holeHeight,
+				clawPosition.z + zOffset + holeDepth / 2
+			)
     );
 
     // Create a direct box helper to ensure visibility
@@ -1084,9 +1236,9 @@ export class ClawScene {
     }
 
     // Use the same safe reference point for consistency across methods
-    const stableX = -14.4; // Moved right to avoid left boundary (-14.95)
+    const stableX = -5.0; // Moved right to avoid left boundary (-14.95)
     const stableY = 2.9; // Just above the floor level
-    const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
+    const stableZ = 9.0; // Moved forward to avoid back boundary (20.9)
 
     // Create the same grid of positions used in other methods
     const positions = [
@@ -1659,9 +1811,9 @@ export class ClawScene {
   // Reset a ball's position to be inside the machine
   resetBallPosition(ball) {
     // Use a verified stable position as our reference point - adjusted to be safely within bounds
-    const stableX = -14.4; // Moved right to avoid left boundary (-14.95)
+    const stableX = -5.0; // Moved right to avoid left boundary (-14.95)
     const stableY = 2.9; // Just above the floor level
-    const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
+    const stableZ = 9.0; // Moved forward to avoid back boundary (20.9)
 
     // Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
     const resetPositions = [
