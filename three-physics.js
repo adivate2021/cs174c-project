@@ -697,6 +697,9 @@ export class BallPhysics {
             closestPoint.y = Math.max(glassBox.min.y, Math.min(ball.position.y, glassBox.max.y));
             closestPoint.z = Math.max(glassBox.min.z, Math.min(ball.position.z, glassBox.max.z));
             
+            if(closestPoint.y = glassBox.max.y) {
+                return false
+            }
             // Calculate penetration direction and depth
             const penetrationDir = new THREE.Vector3().subVectors(ball.position, closestPoint).normalize();
             const penetrationDepth = radius - ball.position.distanceTo(closestPoint);
@@ -747,7 +750,122 @@ export class BallPhysics {
         
         return hasCollision;
     }
-    
+    handleBallEffectorCollision(ball1, eff, effPos, effVel) {
+        if (!ball1.userData.boundingSphere || !eff.children[0].geometry.boundingSphere) return;
+        
+        const sphere1 = ball1.userData.boundingSphere;
+        const sphere2 = eff.children[0].geometry.boundingSphere;
+        
+        // Calculate distance between the centers
+        const distance = ball1.position.distanceTo(effPos);
+        const combinedRadius = sphere1.radius + sphere2.radius;
+        
+        // Check for collision (if distance is less than combined radius)
+        if (distance < combinedRadius) {
+            // If balls are exactly overlapping, separate them slightly
+            if (distance < 0.001) {
+                // Add small random offset to prevent perfect overlap
+                effPos.x += 0.01 + Math.random() * 0.02;
+                effPos.z += 0.01 + Math.random() * 0.02;
+                return; // Skip this frame and handle next frame after separation
+            }
+            
+            // Calculate penetration depth with a small buffer to prevent jittering
+            const penetration = Math.min(combinedRadius - distance, Math.min(sphere1.radius, sphere2.radius)) * 0.5; 
+            
+            // Calculate normal direction (from eff to ball1)
+            const normal = new THREE.Vector3().subVectors(ball1.position, effPos).normalize();
+            
+            // Check if either ball is immobile
+            const isImmobile1 = ball1.userData.isImmobile === true;
+            const isImmobile2 = eff.userData.isImmobile === true;
+            
+            // Separate the balls to prevent overlap based on mobility
+            if (isImmobile1 && isImmobile2) {
+                // Both are immobile - do nothing or maybe add a small random jitter
+                return;
+            } else if (isImmobile1) {
+                // Ball1 is immobile, so move only eff
+                effPos.addScaledVector(normal, -penetration);
+            } else if (isImmobile2) {
+                // eff is immobile, so move only ball1
+                ball1.position.addScaledVector(normal, penetration);
+            } else {
+                // Both are mobile - use standard physics-based separation
+                const totalMass = ball1.userData.mass + eff.userData.mass;
+                const ratio1 = eff.userData.mass / totalMass;
+                const ratio2 = ball1.userData.mass / totalMass;
+                
+                // Move balls apart proportional to their masses
+                ball1.position.addScaledVector(normal, penetration * ratio1);
+                effPos.addScaledVector(normal, -penetration * ratio2);
+            }
+            
+            // Update the spheres to match the new getWorldPosition()s
+            sphere1.center.copy(ball1.position);
+            sphere2.center.copy(effPos);
+            
+            // Calculate relative velocity
+            const v1 = ball1.userData.velocity;
+            const v2 = effVel;
+            const relativeVelocity = new THREE.Vector3().subVectors(v1, v2);
+            
+            // Check if balls are separating (moving away from each other)
+            // If so, we don't need to apply impulse, reduce computational load
+            if (relativeVelocity.dot(normal) > 0) {
+                return;
+            }
+            
+            // Apply impulse based on mobility
+            if (isImmobile1 && isImmobile2) {
+                // Both immobile - no velocity change
+                return;
+            } else if (isImmobile1) {
+                // Only ball1 is immobile - reflect eff's velocity
+                const dotProduct = v2.dot(normal);
+                v2.addScaledVector(normal, -2 * dotProduct);
+                // Apply damping after reflection
+                v2.multiplyScalar(0.7); // More damping for collision with immobile object
+            } else if (isImmobile2) {
+                // Only eff is immobile - reflect ball1's velocity
+                const dotProduct = v1.dot(normal);
+                v1.addScaledVector(normal, -2 * dotProduct);
+                // Apply damping after reflection
+                v1.multiplyScalar(0.7); // More damping for collision with immobile object
+            } else {
+                // Both are mobile - use conservation of momentum
+                // Calculate coefficient of restitution (bounciness)
+                const restitution = 0.7;
+                
+                // Calculate impulse scalar
+                const impulseScalar = -(1 + restitution) * relativeVelocity.dot(normal) / 
+                                     (1/ball1.userData.mass + 1/eff.userData.mass);
+                
+                // Apply impulse
+                const impulse = normal.clone().multiplyScalar(impulseScalar);
+                v1.addScaledVector(impulse, 1/ball1.userData.mass);
+                v2.addScaledVector(impulse, -1/eff.userData.mass);
+            }
+            
+            // Add a small amount of randomness to prevent balls from getting stuck
+            if (Math.abs(v1.y) < 0.1 && Math.abs(v2.y) < 0.1) {
+                // If both balls have very low vertical velocity (likely at rest)
+                const smallRandom = 0.05;
+                if (!isImmobile1) {
+                    v1.x += (Math.random() - 0.5) * smallRandom;
+                    v1.z += (Math.random() - 0.5) * smallRandom;
+                }
+                if (!isImmobile2) {
+                    v2.x += (Math.random() - 0.5) * smallRandom;
+                    v2.z += (Math.random() - 0.5) * smallRandom;
+                }
+            }
+            
+            // Apply additional damping to prevent excessive bouncing
+            if (!isImmobile1) v1.multiplyScalar(0.99);
+            if (!isImmobile2) v2.multiplyScalar(0.99);
+        }
+    }
     // Handle collision between two balls using improved collision response
     handleBallCollision(ball1, ball2) {
         if (!ball1.userData.boundingSphere || !ball2.userData.boundingSphere) return;
@@ -865,6 +983,7 @@ export class BallPhysics {
             if (!isImmobile2) v2.multiplyScalar(0.99);
         }
     }
+
     
     // Check if a ball is far from a reference position and reset if needed
     checkBallBounds(ball, referencePos, maxDistance, resetFunction) {

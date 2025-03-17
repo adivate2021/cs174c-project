@@ -288,6 +288,7 @@ export class ClawScene {
 		this.customClawOpened = upperKnuckleBend === this.minAngleBend;
 		this.customClawGrabbedPrize = false;
 		this.inTransitToBox = false;
+		this.customClawEndEffectorVelocity = new THREE.Vector3(0, 0,0)
 
 		// Create the base of the claw (the root)
 		const baseMesh = new THREE.Mesh(
@@ -386,7 +387,9 @@ export class ClawScene {
 			const geometry = new THREE.SphereGeometry(0.1, 16, 16);
 			const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
 			const endEffector = new THREE.Mesh(geometry, material);
-			lowerFinger.add(endEffector);
+			wrist.userData.mass = 0.01
+			wrist.userData.isImmobile = true
+			endEffector.visible = false
 			// endEffector.geometry.translate(
 			// 	lowerFingerLength,
 			// 	-fingerThickness / 2,
@@ -523,7 +526,7 @@ export class ClawScene {
         position,
         ballColors[i],
         ballNames[i],
-        0.35 + i * 0.03, // Slightly different sizes
+        0.25 + i * 0.03, // Slightly different sizes
         true // This is an absolute position
       );
 
@@ -1327,7 +1330,7 @@ export class ClawScene {
     // Update claw position along the Hermite path if animation is active
     if (this.isClawMoving) {
       // Update path parameter based on time
-			if (!this.lowered) {
+			if (!this.lowered && !this.inTransitToBox) {
 				this.pathT = Math.min(this.pathT + deltaTime * 0.1, 1.0);
       if (this.pathT >= 1.0) {
         // this.isClawMoving = false;
@@ -1352,6 +1355,7 @@ export class ClawScene {
 				const length = difference.length();
 				const difference_norm = difference.normalize();
 				const position = new THREE.Vector3(0, 0, 0);
+				const path_position = this.clawPath.getPointAt(this.pathT);
 				position.addVectors(
 					this.claw_position,
 					difference_norm.multiplyScalar(0.01)
@@ -1360,9 +1364,11 @@ export class ClawScene {
 				if (length < 0.01) {
 					this.inTransitToBox = false;
 					this.lowerRaise();
-					this.resetSimulation();
+					this.updateClawPosition(path_position)
+					this.chainSim.reset(path_position);
 				} else {
 					this.updateCustomClawPosition(position);
+					this.customClawEndEffectorVelocity.set(this.chainSim.chainSim.particles[9].vel)
 					this.updateClawPosition(position);
 				}
 			}
@@ -1483,7 +1489,25 @@ export class ClawScene {
     }
 
     // First pass - handle ball-to-ball collisions
+		let positions = this.getCustomClawEndEffectorPositions()
     for (let i = 0; i < this.toys.length; i++) {
+			for(let [idx, eff] of this.endEffectors.entries()) {
+				if (
+            !this.toys[i].userData ||
+            !eff.children[0].geometry ||
+            !this.toys[i].userData.boundingSphere ||
+            !eff.children[0].geometry.boundingSphere ||
+            !this.toys[i].userData.velocity
+          ) {
+            continue;
+          }
+				this.ballPhysics.handleBallEffectorCollision(
+					this.toys[i],
+					eff,
+					positions[idx],
+					this.chainSim.chainSim.particles[9].vel
+				);
+			}
       for (let j = i + 1; j < this.toys.length; j++) {
         if (this.toys[i] && this.toys[j]) {
           // Check if both toys have needed properties for collision
