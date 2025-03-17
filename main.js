@@ -123,58 +123,6 @@ function createControls(scene) {
     transition: "background-color 0.3s",
   };
 
-  // Create Reset button
-  const resetButton = document.createElement("button");
-  resetButton.textContent = "Reset Simulation";
-  Object.assign(resetButton.style, buttonStyle);
-  resetButton.addEventListener("click", () => {
-    scene.resetSimulation();
-    console.log("Simulation reset");
-  });
-  resetButton.addEventListener("mouseover", () => {
-    resetButton.style.backgroundColor = "#45a049";
-  });
-  resetButton.addEventListener("mouseout", () => {
-    resetButton.style.backgroundColor = "#4CAF50";
-  });
-  controlsContainer.appendChild(resetButton);
-
-  // Create Move Claw button
-  const clawButton = document.createElement("button");
-  clawButton.textContent = "Move Claw";
-  clawButton.style.backgroundColor = "#ff9800";
-  Object.assign(clawButton.style, buttonStyle, { backgroundColor: "#ff9800" });
-  clawButton.addEventListener("click", () => {
-    scene.moveClaw();
-    console.log("Claw movement toggled");
-  });
-  clawButton.addEventListener("mouseover", () => {
-    clawButton.style.backgroundColor = "#e68a00";
-  });
-  clawButton.addEventListener("mouseout", () => {
-    clawButton.style.backgroundColor = "#ff9800";
-  });
-  controlsContainer.appendChild(clawButton);
-
-  // Create Randomize Balls button
-  const randomizeButton = document.createElement("button");
-  randomizeButton.textContent = "Randomize Balls";
-  randomizeButton.style.backgroundColor = "#9c27b0";
-  Object.assign(randomizeButton.style, buttonStyle, {
-    backgroundColor: "#9c27b0",
-  });
-  randomizeButton.addEventListener("click", () => {
-    scene.randomizeBalls();
-    console.log("Balls randomized");
-  });
-  randomizeButton.addEventListener("mouseover", () => {
-    randomizeButton.style.backgroundColor = "#7B1FA2";
-  });
-  randomizeButton.addEventListener("mouseout", () => {
-    randomizeButton.style.backgroundColor = "#9c27b0";
-  });
-  controlsContainer.appendChild(randomizeButton);
-
   // controlsContainer.appendChild(lowerRaiseButton);
   document.addEventListener("keydown", (event) => {
     if (event.code === "Space") {
