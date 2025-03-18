@@ -26,6 +26,7 @@ export class ClawScene {
     this.clock = new THREE.Clock();
     this.clock.start();
     this.ballGrabbed = false;
+    this.playTime = 65;
 
     // Initialize scene and components
     this.initScene();
@@ -64,7 +65,7 @@ export class ClawScene {
     );
 
     // Set initial camera position
-    this.camera.position.set(-4.04, 6.16, 22.7);
+    this.camera.position.set(0, 6.16, 22.7);
 
     // Create a WebGL renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -271,7 +272,7 @@ export class ClawScene {
     this.endEffectors = [];
     this.openingCustomClaw = false;
     this.closingCustomClaw = false;
-    this.maxAngleBend = Math.PI / 5 - 0.05;
+    this.maxAngleBend = Math.PI / 4;
     this.minAngleBend = 0.15;
     this.customClawClosed = false;
     this.customClawOpened = upperKnuckleBend === this.minAngleBend;
@@ -415,7 +416,7 @@ export class ClawScene {
       const effectiveRadius = localBoundingSphere.radius * worldScale.x;
       const effectorSphere = new THREE.Sphere(worldPos, effectiveRadius);
       if (toy.userData.boundingSphere.intersectsSphere(effectorSphere)) {
-        console.log("Intersection detected with an end effector at:", worldPos);
+        // console.log("Intersection detected with an end effector at:", worldPos);
         friction += 2.45;
       }
     });
@@ -429,7 +430,7 @@ export class ClawScene {
     // return 0
   }
   initToys() {
-    console.log("Initializing toys with direct positioning");
+    // console.log("Initializing toys with direct positioning");
 
     // Initialize empty toys array
     this.toys = [];
@@ -473,14 +474,14 @@ export class ClawScene {
       [stableX, stableY + 0.5, stableZ], // Row 1, Col 1
       [stableX, stableY + 0.5, stableZ + 0.7], // Row 1, Col 2
       [stableX, stableY + 0.5, stableZ + 1.4], // Row 1, Col 3
-      [stableX + 0.7, stableY + 0.5, stableZ], // Row 2, Col 1
-      [stableX + 0.7, stableY + 0.5, stableZ + 0.7], // Row 2, Col 2
-      [stableX + 0.7, stableY + 0.5, stableZ + 1.4], // Row 2, Col 3
-      [stableX + 1.4, stableY + 0.5, stableZ], // Row 3, Col 1
-      [stableX + 1.4, stableY + 0.5, stableZ + 0.7], // Row 3, Col 2
-      [stableX, stableY + 1.0, stableZ], // Row 1, Col 1
-      [stableX, stableY + 1.0, stableZ + 0.7], // Row 1, Col 2
-      [stableX, stableY + 1.0, stableZ + 1.4], // Row 1, Col 3
+      // [stableX + 0.7, stableY + 0.5, stableZ], // Row 2, Col 1
+      // [stableX + 0.7, stableY + 0.5, stableZ + 0.7], // Row 2, Col 2
+      // [stableX + 0.7, stableY + 0.5, stableZ + 1.4], // Row 2, Col 3
+      // [stableX + 1.4, stableY + 0.5, stableZ], // Row 3, Col 1
+      // [stableX + 1.4, stableY + 0.5, stableZ + 0.7], // Row 3, Col 2
+      // [stableX, stableY + 1.0, stableZ], // Row 1, Col 1
+      // [stableX, stableY + 1.0, stableZ + 0.7], // Row 1, Col 2
+      // [stableX, stableY + 1.0, stableZ + 1.4], // Row 1, Col 3
     ];
 
     const count = ballAbsolutePositions.length;
@@ -505,9 +506,9 @@ export class ClawScene {
 
       let radius;
       if (i < 7) {
-        radius = 0.25 + i * 0.03; // Slightly different sizes
+        radius = 0.3 + i * 0.03; // Slightly different sizes
       } else {
-        radius = 0.25 + Math.random() * 0.05; // Slightly different sizes
+        radius = 0.3 + Math.random() * 0.05; // Slightly different sizes
       }
 
       const ball = this.createBall(
@@ -543,41 +544,47 @@ export class ClawScene {
 
   generateRandomColors(size = 10) {
     const colors = [];
-  
+
     for (let i = 0; i < size; i++) {
       // Generate random RGB values
       let r, g, b;
       let highChannel = false;
       let saturation = 0;
-      
+
       // For vibrant colors, ensure at least one channel is high
       // and the overall saturation is sufficient
       do {
         r = Math.random();
         g = Math.random();
         b = Math.random();
-        
+
         // Ensure at least one channel is high (> 0.7)
         highChannel = Math.max(r, g, b) > 0.7;
-        
+
         // Calculate saturation: (max-min)/max
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         saturation = max === 0 ? 0 : (max - min) / max;
-        
+
         // Retry if not vibrant enough
       } while (!(highChannel && saturation > 0.5));
-  
-      const hexColor = '#' + 
-        Math.floor(r * 255).toString(16).padStart(2, '0') + 
-        Math.floor(g * 255).toString(16).padStart(2, '0') + 
-        Math.floor(b * 255).toString(16).padStart(2, '0');
+
+      const hexColor =
+        "#" +
+        Math.floor(r * 255)
+          .toString(16)
+          .padStart(2, "0") +
+        Math.floor(g * 255)
+          .toString(16)
+          .padStart(2, "0") +
+        Math.floor(b * 255)
+          .toString(16)
+          .padStart(2, "0");
       colors.push(hexColor);
     }
-    
+
     return colors;
   }
-
 
   // Create a larger barrier wall to separate the glass hole area
   createLargeBarrier() {
@@ -610,7 +617,7 @@ export class ClawScene {
 
   // Method to update the machine bounds to match the claw machine
   updateMachineBounds(clawPosition) {
-    console.log("Updating machine bounds at position:", clawPosition);
+    // console.log("Updating machine bounds at position:", clawPosition);
 
     // Save reference to the claw machine position
     this.clawMachinePosition = clawPosition.clone();
@@ -666,13 +673,13 @@ export class ClawScene {
     // Get a reference to the Box3 for convenience
     this.machineBounds = this.machineBoundsCollider.box;
 
-    console.log(
-      `Created machine bounds at position: (${clawPosition.x}, ${clawPosition.y}, ${clawPosition.z})`
-    );
-    console.log(
-      `Bounds size: ${boundsSize * 2} x ${boundsHeight} x ${boundsSize * 2}`
-    );
-    console.log(`Floor level set to Y = ${floorY}`);
+    // console.log(
+    //   `Created machine bounds at position: (${clawPosition.x}, ${clawPosition.y}, ${clawPosition.z})`
+    // );
+    // console.log(
+    //   `Bounds size: ${boundsSize * 2} x ${boundsHeight} x ${boundsSize * 2}`
+    // );
+    // console.log(`Floor level set to Y = ${floorY}`);
 
     // Mark as initialized to prevent duplicates
     this.machineBoundsInitialized = true;
@@ -699,7 +706,7 @@ export class ClawScene {
 
   // Create a bounding box for the glass hole in the claw machine
   createGlassHoleBounds(clawPosition) {
-    console.log("Creating glass hole bounds at position:", clawPosition);
+    // console.log("Creating glass hole bounds at position:", clawPosition);
 
     // Size of the glass hole - small square opening
     const holeWidth = 1.35; // Width of the hole
@@ -744,14 +751,15 @@ export class ClawScene {
 
     // Add a text display for number of balls in glass hole
     this.updateGlassHoleText();
+    this.updateTimerText();
 
-    console.log(`Glass hole box created at: 
-            Min: (${glassBox.min.x.toFixed(2)}, ${glassBox.min.y.toFixed(
-      2
-    )}, ${glassBox.min.z.toFixed(2)})
-            Max: (${glassBox.max.x.toFixed(2)}, ${glassBox.max.y.toFixed(
-      2
-    )}, ${glassBox.max.z.toFixed(2)})`);
+    // console.log(`Glass hole box created at:
+    //         Min: (${glassBox.min.x.toFixed(2)}, ${glassBox.min.y.toFixed(
+    //   2
+    // )}, ${glassBox.min.z.toFixed(2)})
+    //         Max: (${glassBox.max.x.toFixed(2)}, ${glassBox.max.y.toFixed(
+    //   2
+    // )}, ${glassBox.max.z.toFixed(2)})`);
   }
 
   // Create visible walls for the glass hole (except top)
@@ -849,7 +857,95 @@ export class ClawScene {
 
     // NO TOP WALL - balls can enter from the top
   }
+  updateTimerText() {
+    let text = `Time Remaining: ${Math.floor(
+      this.playTime - this.clock.getElapsedTime()
+    )}s`;
 
+    // Only show the collected balls count as requested
+    if (this.gameOver) {
+      text = `Time Remaining: ${Math.floor(
+        Math.max(0, this.playTime - this.clock.getElapsedTime())
+      )}s`;
+    }
+    // console.log(text);
+
+    // Create or update the canvas texture for the text
+    if (!this.timerCanvas) {
+      // Create a canvas for the text texture
+      this.timerCanvas = document.createElement("canvas");
+      this.timerDisplayScale = 1.5;
+      this.timerCanvas.width = 512 * this.timerDisplayScale;
+      this.timerCanvas.height = 128 * this.timerDisplayScale;
+
+      // Create a texture from the canvas
+      this.timerTexture = new THREE.CanvasTexture(this.timerCanvas);
+
+      // Create a material using the texture
+      this.timerMaterial = new THREE.MeshBasicMaterial({
+        map: this.timerTexture,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide,
+      });
+
+      // Create a plane to display the text
+      this.timerPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(
+          2 * this.timerDisplayScale,
+          0.5 * this.timerDisplayScale
+        ),
+        this.timerMaterial
+      );
+
+      // Add to the scene
+      this.scene.add(this.timerPlane);
+    }
+
+    // Update the text on the canvas
+    const ctx = this.timerCanvas.getContext("2d");
+    ctx.clearRect(0, 0, this.timerCanvas.width, this.timerCanvas.height);
+
+    // Set stylish text properties
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(0, 0, this.timerCanvas.width, this.timerCanvas.height);
+    ctx.font = "bold 64px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Create a gradient for text
+    const gradient = ctx.createLinearGradient(0, 0, this.timerCanvas.width, 0);
+    gradient.addColorStop(0, "#00FFFF"); // Cyan
+    gradient.addColorStop(0.5, "#FFFFFF"); // White
+    gradient.addColorStop(1, "#00FFFF"); // Cyan
+    ctx.fillStyle = gradient;
+
+    // Draw the text
+    ctx.fillText(text, this.timerCanvas.width / 2, this.timerCanvas.height / 2);
+
+    // Update the texture
+    this.timerTexture.needsUpdate = true;
+
+    // Position the text above the glass hole
+    if (this.machineBounds && this.timerPlane) {
+      // Get the center of the glass hole
+      const center = new THREE.Vector3();
+      this.machineBounds.getCenter(center);
+
+      // Position slightly above the glass hole
+      this.timerPlane.position.set(
+        center.x +
+          0.05 -
+          (this.machineBounds.max.x - this.machineBounds.min.x) / 2,
+        center.y,
+        center.z
+      );
+      this.timerPlane.rotation.set(0, Math.PI / 2, 0);
+
+      // Face the camera
+      // this.ballCountPlane.lookAt(this.camera.position);
+    }
+  }
   // Update the text display showing how many balls are collected
   updateGlassHoleText() {
     // Initialize tracking array if needed
@@ -863,15 +959,19 @@ export class ClawScene {
     }
 
     // Only show the collected balls count as requested
-    const text = `Score: ${this.collectedBallsCount}`;
-    console.log(text);
+    let text = `Score: ${this.collectedBallsCount}`;
+    if (this.gameOver) {
+      text = `Game Over! Score: ${this.collectedBallsCount}`;
+    }
+    // console.log(text);
 
     // Create or update the canvas texture for the text
     if (!this.ballCountCanvas) {
       // Create a canvas for the text texture
       this.ballCountCanvas = document.createElement("canvas");
-      this.ballCountCanvas.width = 512;
-      this.ballCountCanvas.height = 128;
+      this.scoreDisplayScale = 1.5;
+      this.ballCountCanvas.width = 512 * this.scoreDisplayScale;
+      this.ballCountCanvas.height = 128 * this.scoreDisplayScale;
 
       // Create a texture from the canvas
       this.ballCountTexture = new THREE.CanvasTexture(this.ballCountCanvas);
@@ -886,7 +986,10 @@ export class ClawScene {
 
       // Create a plane to display the text
       this.ballCountPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(2, 0.5),
+        new THREE.PlaneGeometry(
+          2 * this.scoreDisplayScale,
+          0.5 * this.scoreDisplayScale
+        ),
         this.ballCountMaterial
       );
 
@@ -933,20 +1036,26 @@ export class ClawScene {
     this.ballCountTexture.needsUpdate = true;
 
     // Position the text above the glass hole
-    if (this.glassHoleBounds && this.ballCountPlane) {
+    if (this.machineBounds && this.ballCountPlane) {
       // Get the center of the glass hole
       const center = new THREE.Vector3();
-      this.glassHoleBounds.getCenter(center);
+      this.machineBounds.getCenter(center);
 
       // Position slightly above the glass hole
       this.ballCountPlane.position.set(
-        center.x,
-        center.y + 1.5, // Above the glass hole
+        center.x +
+          0.15 +
+          (this.machineBounds.max.x - this.machineBounds.min.x) / 2,
+        center.y +
+          0.4 +
+          (this.machineBounds.max.y - this.machineBounds.min.y) / 2 +
+          0.1, // Above the glass hole
         center.z
       );
+      this.ballCountPlane.rotation.set(0, Math.PI / 2, 0);
 
       // Face the camera
-      this.ballCountPlane.lookAt(this.camera.position);
+      // this.ballCountPlane.lookAt(this.camera.position);
     }
   }
 
@@ -971,14 +1080,22 @@ export class ClawScene {
       // Only remove if ball is settled and fully contained
       if (
         distanceFromBottom < 0.15 &&
-        (ball.position.x > this.glassHoleBounds.min.x + ball.userData.radius + 0.1 ||
-          ball.position.x > this.glassHoleBounds.min.x + ball.userData.radius - 0.1) &&
-        (ball.position.x < this.glassHoleBounds.max.x - ball.userData.radius + 0.1 ||
-          ball.position.x < this.glassHoleBounds.max.x - ball.userData.radius - 0.1) &&
-        (ball.position.z > this.glassHoleBounds.min.z + ball.userData.radius + 0.1 ||
-          ball.position.z > this.glassHoleBounds.min.z + ball.userData.radius - 0.1) &&
-        (ball.position.z < this.glassHoleBounds.max.z - ball.userData.radius + 0.1 ||
-          ball.position.z < this.glassHoleBounds.max.z - ball.userData.radius - 0.1)
+        (ball.position.x >
+          this.glassHoleBounds.min.x + ball.userData.radius + 0.1 ||
+          ball.position.x >
+            this.glassHoleBounds.min.x + ball.userData.radius - 0.1) &&
+        (ball.position.x <
+          this.glassHoleBounds.max.x - ball.userData.radius + 0.1 ||
+          ball.position.x <
+            this.glassHoleBounds.max.x - ball.userData.radius - 0.1) &&
+        (ball.position.z >
+          this.glassHoleBounds.min.z + ball.userData.radius + 0.1 ||
+          ball.position.z >
+            this.glassHoleBounds.min.z + ball.userData.radius - 0.1) &&
+        (ball.position.z <
+          this.glassHoleBounds.max.z - ball.userData.radius + 0.1 ||
+          ball.position.z <
+            this.glassHoleBounds.max.z - ball.userData.radius - 0.1)
       ) {
         // Get the ball's velocity magnitude
         const velocityMagnitude = ball.userData.velocity.length();
@@ -995,9 +1112,9 @@ export class ClawScene {
     );
 
     if (isInGlassHole) {
-      console.log(
-        `Ball ${ball.name} entered the glass hole. Total balls inside: ${this.ballsInGlassHole.length}`
-      );
+      // console.log(
+      //   `Ball ${ball.name} entered the glass hole. Total balls inside: ${this.ballsInGlassHole.length}`
+      // );
       this.ballsInGlassHole.push(ball);
       this.updateGlassHoleText();
       return true;
@@ -1010,9 +1127,9 @@ export class ClawScene {
   removeBall(ball) {
     if (!ball) return;
 
-    console.log(
-      `Removing ball ${ball.name} that touched the bottom of the glass hole`
-    );
+    // console.log(
+    //   `Removing ball ${ball.name} that touched the bottom of the glass hole`
+    // );
 
     // Remove from scene
     this.scene.remove(ball);
@@ -1174,16 +1291,16 @@ export class ClawScene {
 
   // Create an individual ball with specific position, color, and name
   createBall(position, color, name, size = 0.4, isAbsolutePosition = false) {
-    console.log(`==== CREATING BALL: ${name} ====`);
-    console.log(
-      `Position input: ${JSON.stringify(
-        position
-      )}, isAbsolutePosition: ${isAbsolutePosition}`
-    );
+    // console.log(`==== CREATING BALL: ${name} ====`);
+    // console.log(
+    //   `Position input: ${JSON.stringify(
+    //     position
+    //   )}, isAbsolutePosition: ${isAbsolutePosition}`
+    // );
 
     // Create a shiny ball
     const ballGeometry = new THREE.SphereGeometry(size, 32, 32);
-    console.log(`Created ball geometry with size: ${size}`);
+    // console.log(`Created ball geometry with size: ${size}`);
 
     const ballMaterial = new THREE.MeshPhongMaterial({
       color: color,
@@ -1191,11 +1308,11 @@ export class ClawScene {
       shininess: 100,
       emissive: new THREE.Color(color).multiplyScalar(0.2),
     });
-    console.log(
-      `Created ball material with color: 0x${color
-        .toString(16)
-        .padStart(6, "0")}`
-    );
+    // console.log(
+    //   `Created ball material with color: 0x${color
+    //     .toString(16)
+    //     .padStart(6, "0")}`
+    // );
 
     const ball = new THREE.Mesh(ballGeometry, ballMaterial);
 
@@ -1209,7 +1326,7 @@ export class ClawScene {
       z = position.z;
       isAbsolutePosition = true; // If passing a Vector3, assume it's already an absolute position
     } else {
-      console.error("Invalid position format for createBall:", position);
+      // console.error("Invalid position format for createBall:", position);
       return null;
     }
 
@@ -1221,38 +1338,38 @@ export class ClawScene {
         this.clawMachinePosition.y + y,
         this.clawMachinePosition.z + z
       );
-      console.log(
-        `Set relative position: (${ball.position.x.toFixed(
-          2
-        )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
-      );
+      // console.log(
+      //   `Set relative position: (${ball.position.x.toFixed(
+      //     2
+      //   )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
+      // );
     } else {
       // Use the position directly (either absolute or we don't have a clawMachinePosition)
       ball.position.set(x, y, z);
-      console.log(
-        `Set absolute position: (${ball.position.x.toFixed(
-          2
-        )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
-      );
+      // console.log(
+      //   `Set absolute position: (${ball.position.x.toFixed(
+      //     2
+      //   )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
+      // );
     }
 
     ball.name = name;
-    console.log(`Set ball name: ${name}`);
+    // console.log(`Set ball name: ${name}`);
 
     // Add a bounding sphere for collision detection
     ball.userData.boundingSphere = new THREE.Sphere(
       ball.position.clone(),
       size * 1.05 // Slightly larger than the visual radius
     );
-    console.log(
-      `Created bounding sphere at: (${ball.userData.boundingSphere.center.x.toFixed(
-        2
-      )}, ${ball.userData.boundingSphere.center.y.toFixed(
-        2
-      )}, ${ball.userData.boundingSphere.center.z.toFixed(
-        2
-      )}) with radius: ${ball.userData.boundingSphere.radius.toFixed(2)}`
-    );
+    // console.log(
+    //   `Created bounding sphere at: (${ball.userData.boundingSphere.center.x.toFixed(
+    //     2
+    //   )}, ${ball.userData.boundingSphere.center.y.toFixed(
+    //     2
+    //   )}, ${ball.userData.boundingSphere.center.z.toFixed(
+    //     2
+    //   )}) with radius: ${ball.userData.boundingSphere.radius.toFixed(2)}`
+    // );
 
     // Add physics properties
     ball.userData.velocity = new THREE.Vector3(
@@ -1264,11 +1381,11 @@ export class ClawScene {
     ball.userData.mass = 0.8 + Math.random() * 0.4; // Slightly different masses
     ball.userData.radius = size; // Store the radius for physics
     ball.userData.isBall = true; // Flag to identify as a ball
-    console.log(
-      `Added physics properties: mass=${ball.userData.mass.toFixed(
-        2
-      )}, radius=${ball.userData.radius.toFixed(2)}, isBall=true`
-    );
+    // console.log(
+    //   `Added physics properties: mass=${ball.userData.mass.toFixed(
+    //     2
+    //   )}, radius=${ball.userData.radius.toFixed(2)}, isBall=true`
+    // );
 
     // Add physical properties for rendering
     ball.castShadow = true;
@@ -1281,92 +1398,53 @@ export class ClawScene {
 
     // Add to scene and toys array
     this.scene.add(ball);
-    console.log(
-      `Added ball to scene. Scene children count: ${this.scene.children.length}`
-    );
+    // console.log(
+    //   `Added ball to scene. Scene children count: ${this.scene.children.length}`
+    // );
 
     // Print array indexes to validate
     const ballIndex = this.scene.children.findIndex((obj) => obj === ball);
-    console.log(`Ball index in scene children: ${ballIndex}`);
+    // console.log(`Ball index in scene children: ${ballIndex}`);
 
     this.toys.push(ball);
-    console.log(`Added ball to toys array. Toys count: ${this.toys.length}`);
+    // console.log(`Added ball to toys array. Toys count: ${this.toys.length}`);
 
     // Print all toys for validation
-    console.log("Current toys in scene:");
+    // console.log("Current toys in scene:");
     this.toys.forEach((toy, index) => {
-      console.log(
-        `  ${index}: ${toy.name} at (${toy.position.x.toFixed(
-          2
-        )}, ${toy.position.y.toFixed(2)}, ${toy.position.z.toFixed(
-          2
-        )}), visible: ${toy.visible}`
-      );
+      // console.log(
+      //   `  ${index}: ${toy.name} at (${toy.position.x.toFixed(
+      //     2
+      //   )}, ${toy.position.y.toFixed(2)}, ${toy.position.z.toFixed(
+      //     2
+      //   )}), visible: ${toy.visible}`
+      // );
     });
 
-    console.log(
-      `Created ${name} at (${ball.position.x.toFixed(
-        2
-      )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
-    );
-    console.log(`==== BALL CREATION COMPLETE ====`);
+    // console.log(
+    //   `Created ${name} at (${ball.position.x.toFixed(
+    //     2
+    //   )}, ${ball.position.y.toFixed(2)}, ${ball.position.z.toFixed(2)})`
+    // );
+    // console.log(`==== BALL CREATION COMPLETE ====`);
 
     return ball;
   }
 
   // Main update loop
   update() {
+    if (this.gameOver) {
+      return;
+    }
     // Get time since last frame
     const time = this.clock.getElapsedTime();
     // const deltaTime = this.clock.getDelta();
-    const deltaTime = 0.005;
-    if (time >= 30 && !this.gameOver) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 512;
-      canvas.height = 256;
-      const context = canvas.getContext("2d");
-
-      // Draw background (optional)-13, 4, 22.3
-      context.fillStyle = "rgba(0, 0, 0, 0.8)";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Position the sign at the specified coordinates: x = -13, y = 4, z = 22.3
-      // Draw text
-      context.font = "Bold 48px Arial";
-      context.fillStyle = "#ffffff";
-      context.textAlign = "center";
-      context.textBaseline = "middle";
-      context.fillText(
-        "Game Over! \nScore: " + this.collectedBallsCount,
-        canvas.width / 2,
-        canvas.height / 2
-      );
-
-      // Create a texture from the canvas
-      const texture = new THREE.CanvasTexture(canvas);
-
-      // Create a material using the canvas texture
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-      });
-
-      // Create a plane geometry
-      const geometry = new THREE.PlaneGeometry(5, 2.5);
-
-      // Create the mesh (the sign) and add it to the scene
-      this.sign = new THREE.Mesh(geometry, material);
-      this.scene.add(this.sign);
-      this.sign.position.set(
-        this.camera.position.x - 5,
-        this.camera.position.y - 1,
-        this.camera.position.z
-      );
+    const deltaTime = 0.01;
+    if (time >= this.playTime && !this.gameOver) {
       this.gameOver = true;
+      this.updateGlassHoleText();
     }
-    if (this.sign) {
-      this.sign.lookAt(this.camera.position);
-    }
+
     // Apply animation mixer update for skeletal animations
     if (this.mixer) {
       this.mixer.update(deltaTime);
@@ -1403,10 +1481,10 @@ export class ClawScene {
         const path_position = this.clawPath.getPointAt(this.pathT);
         position.addVectors(
           this.claw_position,
-          difference_norm.multiplyScalar(0.01)
+          difference_norm.multiplyScalar(0.05)
         );
         position.y = this.claw_position.y;
-        if (length < 0.01) {
+        if (length < 0.05) {
           this.inTransitToBox = false;
           this.lowerRaise();
           this.updateClawPosition(path_position);
@@ -1441,15 +1519,15 @@ export class ClawScene {
 
     if (this.openingCustomClaw) {
       if (this.minAngleBend <= this.upperKnuckleBend) {
-        console.log("upper knuckle bend: ", this.upperKnuckleBend);
-        this.rotateCustomClaw(-deltaTime * 2);
+        // console.log("upper knuckle bend: ", this.upperKnuckleBend);
+        this.rotateCustomClaw(-deltaTime);
       } else {
         this.openingCustomClaw = false;
         this.customClawOpened = true;
       }
     } else if (this.closingCustomClaw) {
       if (this.upperKnuckleBend <= this.maxAngleBend) {
-        this.rotateCustomClaw(deltaTime * 2);
+        this.rotateCustomClaw(deltaTime);
       } else {
         this.closingCustomClaw = false;
         this.customClawClosed = true;
@@ -1465,6 +1543,7 @@ export class ClawScene {
 
     // Update glass hole text
     this.updateGlassHoleText();
+    this.updateTimerText();
 
     // Render the scene
     this.render();
@@ -1473,18 +1552,18 @@ export class ClawScene {
   updateToyPhysics(dt, time) {
     // Skip if no toys or physics engine
     if (!this.toys || !this.ballPhysics) {
-      console.warn("Physics update skipped: no toys or physics engine");
+      // console.warn("Physics update skipped: no toys or physics engine");
       return;
     }
 
     // Log the first physics update for debugging
     if (!this.hasLoggedFirstPhysics) {
-      console.log(`==== FIRST PHYSICS UPDATE ====`);
-      console.log(`Toys count: ${this.toys.length}`);
-      console.log(
-        `Physics engine: ${this.ballPhysics ? "Available" : "Missing"}`
-      );
-      console.log(`Delta time: ${dt.toFixed(4)}s`);
+      // console.log(`==== FIRST PHYSICS UPDATE ====`);
+      // console.log(`Toys count: ${this.toys.length}`);
+      // console.log(
+      //   `Physics engine: ${this.ballPhysics ? "Available" : "Missing"}`
+      // );
+      // console.log(`Delta time: ${dt.toFixed(4)}s`);
       this.hasLoggedFirstPhysics = true;
     }
 
@@ -1502,35 +1581,35 @@ export class ClawScene {
       Math.floor(time) !== this.lastPhysicsLog
     ) {
       this.lastPhysicsLog = Math.floor(time);
-      console.log(`==== PHYSICS STATUS at ${time.toFixed(1)}s ====`);
-      console.log(`Active toys: ${this.toys.length}`);
+      // console.log(`==== PHYSICS STATUS at ${time.toFixed(1)}s ====`);
+      // console.log(`Active toys: ${this.toys.length}`);
 
       // Check positions of all toys
       this.toys.forEach((toy, index) => {
         if (toy && toy.userData && toy.userData.velocity) {
-          console.log(
-            `Toy ${index}: ${toy.name} at (${toy.position.x.toFixed(
-              1
-            )}, ${toy.position.y.toFixed(1)}, ${toy.position.z.toFixed(1)})`
-          );
-          console.log(
-            `  Velocity: (${toy.userData.velocity.x.toFixed(
-              2
-            )}, ${toy.userData.velocity.y.toFixed(
-              2
-            )}, ${toy.userData.velocity.z.toFixed(2)})`
-          );
-          console.log(
-            `  Visible: ${
-              toy.visible
-            }, In scene: ${this.scene.children.includes(toy)}, Immobile: ${
-              toy.userData.isImmobile || false
-            }`
-          );
+          // console.log(
+          //   `Toy ${index}: ${toy.name} at (${toy.position.x.toFixed(
+          //     1
+          //   )}, ${toy.position.y.toFixed(1)}, ${toy.position.z.toFixed(1)})`
+          // );
+          // console.log(
+          //   `  Velocity: (${toy.userData.velocity.x.toFixed(
+          //     2
+          //   )}, ${toy.userData.velocity.y.toFixed(
+          //     2
+          //   )}, ${toy.userData.velocity.z.toFixed(2)})`
+          // );
+          // console.log(
+          //   `  Visible: ${
+          //     toy.visible
+          //   }, In scene: ${this.scene.children.includes(toy)}, Immobile: ${
+          //     toy.userData.isImmobile || false
+          //   }`
+          // );
         }
       });
 
-      console.log(`==== END PHYSICS STATUS ====`);
+      // console.log(`==== END PHYSICS STATUS ====`);
     }
 
     // First pass - handle ball-to-ball collisions
@@ -1766,7 +1845,7 @@ export class ClawScene {
       let fixedCount = 0;
       this.toys.forEach((toy) => {
         if (toy && !toy.visible) {
-          console.warn(`Found invisible ball: ${toy.name} - Making it visible`);
+          // console.warn(`Found invisible ball: ${toy.name} - Making it visible`);
           toy.visible = true;
           toy.material.visible = true;
           toy.material.needsUpdate = true;
@@ -1775,7 +1854,7 @@ export class ClawScene {
       });
 
       if (fixedCount > 0) {
-        console.log(`Fixed visibility for ${fixedCount} balls`);
+        // console.log(`Fixed visibility for ${fixedCount} balls`);
       }
     }
 
@@ -1809,20 +1888,20 @@ export class ClawScene {
   toggleGravity() {
     if (this.ballPhysics) {
       const gravityEnabled = this.ballPhysics.toggleGravity();
-      console.log(`Gravity ${gravityEnabled ? "enabled" : "disabled"}`);
+      // console.log(`Gravity ${gravityEnabled ? "enabled" : "disabled"}`);
     }
   }
 
   // Toggle claw movement
   moveClaw() {
     this.isClawMoving = !this.isClawMoving;
-    console.log(`Claw movement ${this.isClawMoving ? "started" : "stopped"}`);
+    // console.log(`Claw movement ${this.isClawMoving ? "started" : "stopped"}`);
 
     // Reset parameters when starting movement
     if (this.isClawMoving && this.clawPath) {
       // Make sure the claw path is initialized
       if (this.clawPath.curves.length === 0) {
-        console.warn("Claw path has no curves. Initializing path...");
+        // console.warn("Claw path has no curves. Initializing path...");
         this.initHermiteCurves();
       }
 
@@ -1852,7 +1931,7 @@ export class ClawScene {
     this.clawNode.position.set(...this.customClawPosition);
   }
   rotateCustomClaw(theta) {
-    console.log("rotating custom claw:");
+    // console.log("rotating custom claw:");
     this.upperKnuckleBend += theta;
     for (let knuckle of this.clawNode.children) {
       if (knuckle.type === "Group") {
@@ -1881,7 +1960,7 @@ export class ClawScene {
   lowerRaise() {
     if (this.inTransitToBox) return;
     if (this.lowered) {
-      console.log("Raising Claw");
+      // console.log("Raising Claw");
       this.chainSim.chainSim.springs[
         this.chainSim.chainSim.springs.length - 1
       ].ks = 500;
@@ -1897,7 +1976,7 @@ export class ClawScene {
     } else {
       // if the claw is high and has a prize, there's no need to drop it -> simply open the claw
       if (!this.customClawGrabbedPrize) {
-        console.log("Lowering Claw");
+        // console.log("Lowering Claw");
         this.chainSim.chainSim.springs[
           this.chainSim.chainSim.springs.length - 1
         ].ks = 5;
@@ -1943,7 +2022,7 @@ export class ClawScene {
   // Method to find and setup joints from the loaded model
   setupIkJointsFromModel() {
     if (!this.clawMechanism) {
-      console.warn("Cannot setup IK, claw mechanism not found");
+      // console.warn("Cannot setup IK, claw mechanism not found");
       return;
     }
 
@@ -2002,7 +2081,7 @@ export class ClawScene {
       this.ikEndEffector = cube007;
     }
 
-    console.log(`Initialized IK chain with ${this.ikJoints.length} joints`);
+    // console.log(`Initialized IK chain with ${this.ikJoints.length} joints`);
   }
 
   // Helper to find objects by name
@@ -2171,36 +2250,36 @@ export class ClawScene {
 
   // Randomize all balls to new positions within the claw machine
   randomizeBalls() {
-    console.log("==== RANDOMIZING BALL POSITIONS ====");
+    // console.log("==== RANDOMIZING BALL POSITIONS ====");
 
     // Find all balls in the scene
     let ballCount = 0;
     let visibleCount = 0;
 
-    console.log(`Total toys in array: ${this.toys ? this.toys.length : 0}`);
+    // console.log(`Total toys in array: ${this.toys ? this.toys.length : 0}`);
 
     // If no toys are found, recreate them
     if (!this.toys || this.toys.length === 0) {
-      console.warn("No toys found, recreating balls");
+      // console.warn("No toys found, recreating balls");
       this.createDirectBalls();
       return;
     }
 
     this.toys.forEach((object, index) => {
       if (object && object.userData && object.userData.isBall) {
-        console.log(
-          `Randomizing ${
-            object.name
-          } - Current position: (${object.position.x.toFixed(
-            2
-          )}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(
-            2
-          )}), Visible: ${object.visible}`
-        );
+        // console.log(
+        //   `Randomizing ${
+        //     object.name
+        //   } - Current position: (${object.position.x.toFixed(
+        //     2
+        //   )}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(
+        //     2
+        //   )}), Visible: ${object.visible}`
+        // );
 
         // Ensure the ball is visible
         if (!object.visible) {
-          console.warn(`Ball ${object.name} was invisible - making it visible`);
+          // console.warn(`Ball ${object.name} was invisible - making it visible`);
           object.visible = true;
           object.material.visible = true;
           object.material.needsUpdate = true;
@@ -2208,9 +2287,9 @@ export class ClawScene {
 
         // Check if the ball is in the scene
         if (!this.scene.children.includes(object)) {
-          console.warn(
-            `Ball ${object.name} was not in the scene - adding it back`
-          );
+          // console.warn(
+          //   `Ball ${object.name} was not in the scene - adding it back`
+          // );
           this.scene.add(object);
         }
 
@@ -2236,19 +2315,19 @@ export class ClawScene {
     });
 
     if (ballCount === 0) {
-      console.warn("No balls found to randomize, recreating all balls");
+      // console.warn("No balls found to randomize, recreating all balls");
       this.createDirectBalls();
     } else {
-      console.log(`Randomized ${ballCount} balls, ${visibleCount} are visible`);
+      // console.log(`Randomized ${ballCount} balls, ${visibleCount} are visible`);
     }
 
-    console.log("==== RANDOMIZATION COMPLETE ====");
+    // console.log("==== RANDOMIZATION COMPLETE ====");
   }
 
   // Get a random position inside the machine bounds but away from the glass hole
   getRandomPositionInMachine() {
     if (!this.machineBounds) {
-      console.error("Machine bounds not available for positioning");
+      // console.error("Machine bounds not available for positioning");
       return [0, 2, 0]; // Fallback position above the machine
     }
 
@@ -2319,7 +2398,7 @@ export class ClawScene {
       this.scene.add(this.clawPath.pathGroup);
     }
 
-    console.log(`Created claw path with ${this.clawPath.curves.length} curves`);
+    // console.log(`Created claw path with ${this.clawPath.curves.length} curves`);
   }
 
   // Handle collision with barrier
@@ -2372,7 +2451,7 @@ export class ClawScene {
   // This method needs to be called when a ball is grabbed by the claw
   enableBallPhysics(ball) {
     if (ball && ball.userData) {
-      console.log(`Enabling physics for ${ball.name} - ball is now mobile`);
+      // console.log(`Enabling physics for ${ball.name} - ball is now mobile`);
       ball.userData.isImmobile = false;
       ball.userData.isGrabbed = true;
     }
@@ -2381,7 +2460,7 @@ export class ClawScene {
   // This method would be called when a ball is released from the claw
   releaseBall(ball) {
     if (ball && ball.userData) {
-      console.log(`Released ${ball.name} - ball will follow normal physics`);
+      // console.log(`Released ${ball.name} - ball will follow normal physics`);
       ball.userData.isGrabbed = false;
       // Don't reset isImmobile - let it follow physics until it comes to rest or is reset
     }
@@ -2389,7 +2468,7 @@ export class ClawScene {
 
   enablePhysicsForAllBalls() {
     if (!this.toys || this.toys.length === 0) {
-      console.warn("No toys found to enable physics for");
+      // console.warn("No toys found to enable physics for");
       return 0;
     }
 
@@ -2411,7 +2490,7 @@ export class ClawScene {
       }
     });
 
-    console.log(`Enabled physics for ${enabledCount} balls`);
+    // console.log(`Enabled physics for ${enabledCount} balls`);
     return enabledCount;
   }
 }

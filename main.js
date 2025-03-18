@@ -17,35 +17,35 @@ let clawSceneInstance = null;
 
 // Check Three.js availability and report details
 function checkThree() {
-  console.log("Checking Three.js availability...");
+  // console.log("Checking Three.js availability...");
 
   if (typeof THREE === "undefined") {
     console.error("THREE is not defined! Make sure Three.js is loaded.");
     return false;
   }
 
-  console.log("THREE is defined:", THREE.REVISION);
+  // console.log("THREE is defined:", THREE.REVISION);
 
   if (typeof OrbitControls === "undefined") {
-    console.log("OrbitControls is not defined!");
+    // console.log("OrbitControls is not defined!");
     return false;
   }
 
-  console.log("OrbitControls is defined");
+  // console.log("OrbitControls is defined");
   return true;
 }
 
 // Wait for the page to load
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM content loaded, attempting to initialize...");
+  // console.log("DOM content loaded, attempting to initialize...");
 
   // Since we're using ES modules, Three.js should already be loaded
-  console.log("Three.js loaded as module, initializing...");
+  // console.log("Three.js loaded as module, initializing...");
   init();
 });
 
 function init() {
-  console.log("Initializing...");
+  // console.log("Initializing...");
 
   if (!checkThree()) {
     console.error("Three.js check failed!");
@@ -56,7 +56,7 @@ function init() {
     // Create the claw scene instance
     clawSceneInstance = new ClawScene();
 
-    console.log("ClawScene instance created");
+    // console.log("ClawScene instance created");
 
     // Add window resize handler
     window.addEventListener("resize", () => {
@@ -133,7 +133,7 @@ function createControls(scene) {
 }
 
 function loadClawMachineModel(scene) {
-  console.log("Loading claw machine model...");
+  // console.log("Loading claw machine model...");
 
   const loader = new GLTFLoader();
 
@@ -141,7 +141,7 @@ function loadClawMachineModel(scene) {
   loader.load(
     "./Claw-Island-2/scene.gltf",
     function (gltf) {
-      console.log("Model loaded successfully!");
+      // console.log("Model loaded successfully!");
 
       // Add the model to the scene
       const combinedModel = gltf.scene;
@@ -158,7 +158,7 @@ function loadClawMachineModel(scene) {
           object.receiveShadow = true;
 
           // Debug all mesh names to help find the bird model
-          console.log(`Found mesh: ${object.name}`);
+          // console.log(`Found mesh: ${object.name}`);
         }
       });
 
@@ -175,9 +175,9 @@ function loadClawMachineModel(scene) {
       });
     },
     function (xhr) {
-      console.log(
-        "Model loading: " + (xhr.loaded / xhr.total) * 100 + "% loaded"
-      );
+      // console.log(
+      //   "Model loading: " + (xhr.loaded / xhr.total) * 100 + "% loaded"
+      // );
       if (xhr.loaded / xhr.total === 1) {
         scene.moveClaw();
       }
@@ -190,7 +190,7 @@ function loadClawMachineModel(scene) {
 
 // Function to set up the claw machine parts at the specified position
 function setupClawMachine(scene, modelRoot, clawPosition) {
-  console.log(`Setting up claw machine at position:`, clawPosition);
+  // console.log(`Setting up claw machine at position:`, clawPosition);
 
   // Ensure clawPosition is a Vector3
   const clawPos = new THREE.Vector3(
@@ -199,7 +199,7 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
     clawPosition.z || 0
   );
 
-  console.log(`Converted to Vector3:`, clawPos);
+  // console.log(`Converted to Vector3:`, clawPos);
 
   // Create a reference point for the claw machine
   scene.clawMachinePosition = clawPos.clone();
@@ -242,7 +242,7 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
         child.name.includes("Sketchfab_model.002")
       ) {
         birdMeshes.push(child);
-        console.log(`Found potential bird model: ${child.name}`);
+        // console.log(`Found potential bird model: ${child.name}`);
       }
 
       // Check if this might be the interior
@@ -251,7 +251,7 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
         child.name.toLowerCase().includes("inside")
       ) {
         interiorPart = child;
-        console.log(`Found potential interior part: ${child.name}`);
+        // console.log(`Found potential interior part: ${child.name}`);
       }
 
       // Check if this might be the roof
@@ -261,7 +261,7 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
         child.name.toLowerCase().includes("ceiling")
       ) {
         roofPart = child;
-        console.log(`Found potential roof part: ${child.name}`);
+        // console.log(`Found potential roof part: ${child.name}`);
       }
     }
   });
@@ -271,7 +271,7 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
 
   // Handle balls and bounding box - directly call methods on the scene
   try {
-    console.log("Updating machine bounds at position:", clawPos);
+    // console.log("Updating machine bounds at position:", clawPos);
     scene.updateMachineBounds(clawPos);
 
     // Replace birds with found bird models
@@ -279,13 +279,13 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
       findAndReplaceBirds(scene, modelRoot, birdMeshes);
     }
   } catch (error) {
-    console.error("Error setting up claw machine bounds:", error);
+    // console.error("Error setting up claw machine bounds:", error);
   }
 }
 
 // Helper function to find bird models in the claw machine and replace placeholders
 function findAndReplaceBirds(scene, modelRoot, birdMeshes = []) {
-  console.log("Finding and replacing birds...");
+  // console.log("Finding and replacing birds...");
 
   // Try to find any bird or animal-like models
   let birdModel = null;
@@ -293,7 +293,7 @@ function findAndReplaceBirds(scene, modelRoot, birdMeshes = []) {
   // Log all mesh names to debug
   modelRoot.traverse((object) => {
     if (object.isMesh) {
-      console.log(`Checking mesh for bird model: ${object.name}`);
+      // console.log(`Checking mesh for bird model: ${object.name}`);
     }
   });
 
@@ -305,7 +305,7 @@ function findAndReplaceBirds(scene, modelRoot, birdMeshes = []) {
       // Check if the object name contains any bird-like keywords
       const lowerName = object.name.toLowerCase();
       if (birdNames.some((name) => lowerName.includes(name))) {
-        console.log(`Found potential bird model: ${object.name}`);
+        // console.log(`Found potential bird model: ${object.name}`);
         birdModel = object.parent || object; // Get the parent group if available
       }
     }
@@ -313,22 +313,22 @@ function findAndReplaceBirds(scene, modelRoot, birdMeshes = []) {
 
   // If we didn't find a specific bird model, try to use any of the provided bird meshes
   if (!birdModel && birdMeshes.length > 0) {
-    console.log("Using provided bird meshes instead");
+    // console.log("Using provided bird meshes instead");
     birdModel = birdMeshes[0].parent || birdMeshes[0];
   }
 
   // If we still don't have a bird model, try to create one from a simple shape
   if (!birdModel) {
-    console.log("Creating simple bird model from geometries");
+    // console.log("Creating simple bird model from geometries");
     birdModel = createSimpleBirdModel();
   }
 
   // If we found a bird model, use it to replace the balls
   if (birdModel) {
-    console.log("Bird model found, replacing balls with birds");
+    // console.log("Bird model found, replacing balls with birds");
     replaceBallsWithBirdModels(scene, birdModel);
   } else {
-    console.log("No bird model found, keeping the balls");
+    // console.log("No bird model found, keeping the balls");
   }
 }
 
@@ -483,30 +483,30 @@ function replaceBallsWithBirdModels(scene, birdModel) {
     // Remove the original ball
     scene.scene.remove(toy);
 
-    console.log(
-      `Replaced ${toy.name} with bird model at (${position.x}, ${position.y}, ${position.z})`
-    );
+    // console.log(
+    //   `Replaced ${toy.name} with bird model at (${position.x}, ${position.y}, ${position.z})`
+    // );
   }
 
   // Update the toys array to contain the birds
   scene.clawScene.toys = birds;
 
-  console.log(`Replaced ${birds.length} balls with bird models`);
+  // console.log(`Replaced ${birds.length} balls with bird models`);
 }
 
 // Helper function to update the hermite path to align with the roof of the claw machine
 function updateHermitePathToMatchRoof(scene, roofPart, clawPosition) {
-  console.log("Updating hermite path to match roof at position:", clawPosition);
+  // console.log("Updating hermite path to match roof at position:", clawPosition);
 
   // Check if we need to create a path
   if (!scene.clawPath) {
-    console.log("Creating new HermitePath for claw");
+    // console.log("Creating new HermitePath for claw");
     scene.clawPath = new HermitePath();
   }
 
   // Calculate the roof height - a bit below the top of the claw machine
   const roofHeight = clawPosition.y + 6.5; // Approximately 4 units above the base
-  console.log(`Setting path at height ${roofHeight}`);
+  // console.log(`Setting path at height ${roofHeight}`);
 
   // Create points for a path around the inside perimeter
   const pathWidth = 2.0; // Width of the path area (X)
@@ -624,20 +624,20 @@ function updateHermitePathToMatchRoof(scene, roofPart, clawPosition) {
   if (scene.clawMechanism) {
     const pathPos = scene.clawPath.getPointAt(0);
     scene.clawMechanism.position.copy(pathPos);
-    console.log("Positioned claw mechanism at start of path:", pathPos);
+    // console.log("Positioned claw mechanism at start of path:", pathPos);
   }
 
   // Ensure the bounding box is properly positioned at the claw location
   if (scene.clawScene) {
     scene.clawScene.updateMachineBounds(clawPosition);
-    console.log("Repositioned balls within updated bounds");
+    // console.log("Repositioned balls within updated bounds");
   }
 }
 
 // Position the claw machine on top of the ferris wheel
 function positionClawMachineOnFerrisWheel(scene) {
   if (!scene.clawMachineGroup) {
-    console.warn("Cannot position claw machine - missing required components");
+    // console.warn("Cannot position claw machine - missing required components");
     return;
   }
 
@@ -656,7 +656,7 @@ function positionClawMachineOnFerrisWheel(scene) {
     3 // Z offset as requested
   );
 
-  console.log(`Positioned claw machine at (5, ${ferrisHeight}, 3)`);
+  // console.log(`Positioned claw machine at (5, ${ferrisHeight}, 3)`);
 
   // Update the claw mechanism position
   if (scene.clawMechanism) {
@@ -678,7 +678,7 @@ function positionClawMachineOnFerrisWheel(scene) {
           const roofBox = new THREE.Box3().setFromObject(obj);
           roofY = roofBox.min.y;
           roofFound = true;
-          console.log(`Found roof bottom at y=${roofY}`);
+          // console.log(`Found roof bottom at y=${roofY}`);
         }
       });
     }
@@ -688,7 +688,7 @@ function positionClawMachineOnFerrisWheel(scene) {
       // Update the base height for the claw mechanism based on machine height
       const clawOperationHeight = scene.machineHeight - 4 || 8;
       roofY = ferrisHeight + clawOperationHeight;
-      console.log(`Using estimated roof height at y=${roofY}`);
+      // console.log(`Using estimated roof height at y=${roofY}`);
     }
 
     // Update claw mechanism position
@@ -727,16 +727,16 @@ function positionClawMachineOnFerrisWheel(scene) {
       scene.boxHelper.updateMatrixWorld(true);
     }
 
-    console.log(`Updated machine bounds to match new position`);
+    // console.log(`Updated machine bounds to match new position`);
   }
 
   // Update the hermite path to align with the new position
   // This is now handled separately in updateHermitePathToMatchRoof
   // which will be called after the machine is positioned
 
-  console.log(
-    "Claw machine positioned on top of ferris wheel with offset (5, y, 3)"
-  );
+  // console.log(
+  //   "Claw machine positioned on top of ferris wheel with offset (5, y, 3)"
+  // );
 
   // Finally, update path to match the new roof position
   let roofPart = null;
