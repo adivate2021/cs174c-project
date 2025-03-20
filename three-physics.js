@@ -1,16 +1,7 @@
-// three-physics.js - Physics simulation module for Three.js version
+// three-physics.js
 import * as THREE from "three";
-import {
-  vec3,
-  toThreeVec3,
-  add,
-  subtract,
-  scale,
-  length,
-  normalize,
-} from "./three-math.js";
 
-// Particle class - adapted for Three.js
+// Particle class
 export class Particle {
   constructor() {
     this.pos = new THREE.Vector3(0, 0, 0);
@@ -26,7 +17,7 @@ export class Particle {
     this.mesh = null;
   }
 
-  // Update the Three.js mesh position
+  // Update the mesh position
   updateMesh() {
     if (this.mesh) {
       this.mesh.position.copy(this.pos);
@@ -34,7 +25,7 @@ export class Particle {
   }
 }
 
-// Spring class - adapted for Three.js
+// Spring class
 export class Spring {
   constructor() {
     this.particle_1 = null;
@@ -44,11 +35,10 @@ export class Spring {
     this.rest_length = 1.0;
     this.valid = true;
 
-    // Reference to the Three.js line that represents this spring
     this.line = null;
   }
 
-  // Update the Three.js line geometry to match particle positions
+  // Update the line geometry to match particle positions
   updateLine() {
     if (this.line && this.particle_1 && this.particle_2) {
       const positions = this.line.geometry.attributes.position;
@@ -69,7 +59,7 @@ export class Spring {
   }
 }
 
-// Simulation class - adapted for Three.js
+// Simulation class
 export class Simulation {
   constructor() {
     this.particles = [];
@@ -130,7 +120,8 @@ export class Simulation {
       const spring_vec = p2.pos.clone().sub(p1.pos);
       const spring_len = spring_vec.length();
 
-      if (spring_len === 0) continue; // Avoid division by zero
+      // Avoid division by zero
+      if (spring_len === 0) continue;
 
       // Compute spring direction
       const spring_dir = spring_vec.clone().normalize();
@@ -180,7 +171,7 @@ export class Simulation {
           p.pos.y = p.prev_pos.y;
           //   console.log(p.pos.y);
         }
-        // Update the Three.js mesh position
+
         p.updateMesh();
       }
     }
@@ -205,7 +196,7 @@ export class Simulation {
   }
 }
 
-// Chain simulation - adapted for Three.js
+// Chain simulation
 export class ChainSim {
   constructor(scene, position) {
     // console.log("position", position);
@@ -258,7 +249,8 @@ export class ChainSim {
 
       // Create a line to visualize the spring
       const lineGeometry = new THREE.BufferGeometry();
-      const positions = new Float32Array(6); // 2 points * 3 coordinates
+      // 2 points * 3 coordinates
+      const positions = new Float32Array(6);
 
       // Set initial positions
       positions[0] = spring.particle_1.pos.x;
@@ -278,108 +270,7 @@ export class ChainSim {
       this.chainSim.springs.push(spring);
     }
 
-    // // Create additional particles for the claw
-    // const particle3 = new Particle();
-    // particle3.mass = 1;
-    // particle3.pos.set(1.5, 3, 0);
-    // particle3.vel.set(0, 0, 0);
-    // particle3.valid = true;
-    // particle3.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
-    // particle3.mesh.position.copy(particle3.pos);
-    // this.scene.add(particle3.mesh);
-    // this.chainSim.particles.push(particle3);
-
-    // const particle4 = new Particle();
-    // particle4.mass = 1;
-    // particle4.pos.set(-0.75, 3, 1.3);
-    // particle4.vel.set(0, 0, 0);
-    // particle4.valid = true;
-    // particle4.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
-    // particle4.mesh.position.copy(particle4.pos);
-    // this.scene.add(particle4.mesh);
-    // this.chainSim.particles.push(particle4);
-
-    // const particle5 = new Particle();
-    // particle5.mass = 1;
-    // particle5.pos.set(-0.75, 3, -1.3);
-    // particle5.vel.set(0, 0, 0);
-    // particle5.valid = true;
-    // particle5.mesh = new THREE.Mesh(this.sphereGeometry, this.sphereMaterial);
-    // particle5.mesh.position.copy(particle5.pos);
-    // this.scene.add(particle5.mesh);
-    // this.chainSim.particles.push(particle5);
-
-    // // Create springs for the claw
-    // const spring2 = new Spring();
-    // spring2.particle_1 = this.chainSim.particles[2];
-    // spring2.particle_2 = this.chainSim.particles[3];
-    // spring2.ks = 5000;
-    // spring2.kd = 10;
-    // spring2.rest_length = 2.5;
-    // spring2.valid = true;
-
-    // const lineGeometry2 = new THREE.BufferGeometry();
-    // const positions2 = new Float32Array(6);
-    // positions2[0] = spring2.particle_1.pos.x;
-    // positions2[1] = spring2.particle_1.pos.y;
-    // positions2[2] = spring2.particle_1.pos.z;
-    // positions2[3] = spring2.particle_2.pos.x;
-    // positions2[4] = spring2.particle_2.pos.y;
-    // positions2[5] = spring2.particle_2.pos.z;
-
-    // lineGeometry2.setAttribute('position', new THREE.BufferAttribute(positions2, 3));
-    // spring2.line = new THREE.Line(lineGeometry2, this.lineMaterial);
-    // this.scene.add(spring2.line);
-
-    // this.chainSim.springs.push(spring2);
-
-    // const spring3 = new Spring();
-    // spring3.particle_1 = this.chainSim.particles[2];
-    // spring3.particle_2 = this.chainSim.particles[4];
-    // spring3.ks = 5000;
-    // spring3.kd = 10;
-    // spring3.rest_length = 2.5;
-    // spring3.valid = true;
-
-    // const lineGeometry3 = new THREE.BufferGeometry();
-    // const positions3 = new Float32Array(6);
-    // positions3[0] = spring3.particle_1.pos.x;
-    // positions3[1] = spring3.particle_1.pos.y;
-    // positions3[2] = spring3.particle_1.pos.z;
-    // positions3[3] = spring3.particle_2.pos.x;
-    // positions3[4] = spring3.particle_2.pos.y;
-    // positions3[5] = spring3.particle_2.pos.z;
-
-    // lineGeometry3.setAttribute('position', new THREE.BufferAttribute(positions3, 3));
-    // spring3.line = new THREE.Line(lineGeometry3, this.lineMaterial);
-    // this.scene.add(spring3.line);
-
-    // this.chainSim.springs.push(spring3);
-
-    // const spring4 = new Spring();
-    // spring4.particle_1 = this.chainSim.particles[2];
-    // spring4.particle_2 = this.chainSim.particles[5];
-    // spring4.ks = 5000;
-    // spring4.kd = 10;
-    // spring4.rest_length = 2.5;
-    // spring4.valid = true;
-
-    // const lineGeometry4 = new THREE.BufferGeometry();
-    // const positions4 = new Float32Array(6);
-    // positions4[0] = spring4.particle_1.pos.x;
-    // positions4[1] = spring4.particle_1.pos.y;
-    // positions4[2] = spring4.particle_1.pos.z;
-    // positions4[3] = spring4.particle_2.pos.x;
-    // positions4[4] = spring4.particle_2.pos.y;
-    // positions4[5] = spring4.particle_2.pos.z;
-
-    // lineGeometry4.setAttribute('position', new THREE.BufferAttribute(positions4, 3));
-    // spring4.line = new THREE.Line(lineGeometry4, this.lineMaterial);
-    // this.scene.add(spring4.line);
-
-    // this.chainSim.springs.push(spring4);
-
-    // Configure simulation
+   // Configure simulation    
     this.chainSim.g_acc.set(0, -9.8, 0);
     this.chainSim.ground_ks = 5000;
     this.chainSim.ground_kd = 10;
@@ -409,18 +300,6 @@ export class ChainSim {
       this.chainSim.particles[i].updateMesh();
     }
 
-    // this.chainSim.particles[3].pos.set(1.5, 3, 0);
-    // this.chainSim.particles[3].vel.set(0, 0, 0);
-    // this.chainSim.particles[3].updateMesh();
-
-    // this.chainSim.particles[4].pos.set(-0.75, 3, 1.3);
-    // this.chainSim.particles[4].vel.set(0, 0, 0);
-    // this.chainSim.particles[4].updateMesh();
-
-    // this.chainSim.particles[5].pos.set(-0.75, 3, -1.3);
-    // this.chainSim.particles[5].vel.set(0, 0, 0);
-    // this.chainSim.particles[5].updateMesh();
-
     // Update all springs
     for (const s of this.chainSim.springs) {
       s.updateLine();
@@ -438,15 +317,15 @@ export class BallPhysics {
     // Physics constants
     this.gravity = new THREE.Vector3(0, -9.8, 0);
     this.isGravityEnabled = true;
-    this.damping = 0.98; // Less damping for more natural movement
+    this.damping = 0.98;
 
-    // Spring-damper constants for wall collisions - moderate values
-    this.wallSpringConstant = 40.0; // Spring stiffness
-    this.wallDampingConstant = 8.0; // Moderate damping
+    // Spring-damper constants for wall collisions
+    this.wallSpringConstant = 40.0;
+    this.wallDampingConstant = 8.0;
 
     // Spring-damper constants for ball-ball collisions
-    this.ballSpringConstant = 30.0; // Spring stiffness
-    this.ballDampingConstant = 3.0; // Moderate damping
+    this.ballSpringConstant = 30.0;
+    this.ballDampingConstant = 3.0;
 
     // Time step for simulation
     this.dt = 0.008; // 60 FPS
@@ -463,12 +342,12 @@ export class BallPhysics {
     // Store the previous position for continuous collision detection
     const prevPosition = ball.position.clone();
 
-    // Apply gravity if enabled - with normal strength
+    // Apply gravity if enabled
     if (this.isGravityEnabled) {
       // Use full gravity for proper acceleration
       ball.userData.velocity.addScaledVector(this.gravity, dt * 2);
     }
-    // ball.userData.velocity.addScaledVector(ball.userData.acceleration, dt)
+
     // Check velocity magnitude - if it's high, we need continuous collision detection
     const velocity = ball.userData.velocity;
     const speed = velocity.length();
@@ -477,18 +356,18 @@ export class BallPhysics {
     // If speed is high relative to object radius, use swept sphere collision detection
     if (speed * dt > radius * 0.5) {
       // This ball is moving fast enough that it might tunnel through obstacles
-      // Use continuous (swept) collision detection
+      // Use continuous(swept) collision detection
       this.updateWithContinuousCollision(ball, dt, prevPosition);
     } else {
       // Regular update for slow-moving balls
       ball.position.addScaledVector(velocity, dt);
     }
 
-    // Apply damping (air resistance) - less damping for more natural movement
+    // Apply damping (air resistance)
     velocity.multiplyScalar(this.damping);
 
-    // Apply a reasonable velocity cap to prevent extreme values
-    const maxVelocity = 10.0; // Higher max velocity
+    // Velocity cap to prevent extreme values
+    const maxVelocity = 10.0;
     const currentSpeed = velocity.length();
     if (currentSpeed > maxVelocity) {
       velocity.multiplyScalar(maxVelocity / currentSpeed);
@@ -522,14 +401,14 @@ export class BallPhysics {
     const fullDistance = moveDistance;
     let remainingDistance = fullDistance;
 
-    // Set a maximum number of iterations to prevent infinite loops
+    // Number of iterations to prevent infinite loops
     const maxIterations = 5;
     let iterations = 0;
 
-    // Set current position to start position
+    // Current position to start position
     ball.position.copy(startPosition);
 
-    // Keep track of all colliders to check
+    // All colliders to check
     const colliders = [];
 
     // Add main bounding box if it exists
@@ -542,7 +421,7 @@ export class BallPhysics {
       colliders.push({ type: "glass", box: ball._glassBox });
     }
 
-    // Use ray casting to check for collisions along the path
+    // Ray casting to check for collisions along the path
     while (remainingDistance > 0.001 && iterations < maxIterations) {
       iterations++;
 
@@ -551,7 +430,6 @@ export class BallPhysics {
       ball.position.addScaledVector(moveDirection, stepDistance);
       remainingDistance -= stepDistance;
 
-      // Now check for collisions at this position and resolve if needed
       let collided = false;
 
       // Check against all colliders
@@ -579,7 +457,7 @@ export class BallPhysics {
               Math.min(ball.position.z, box.max.z)
             );
 
-            // If at the top of the glass box, allow movement (this is the opening)
+            // If at the top of the glass box, allow movement
             if (closestPoint.y === box.max.y) {
               collided = false;
               continue;
@@ -636,7 +514,7 @@ export class BallPhysics {
       }
 
       if (!collided && remainingDistance > 0.001) {
-        // If we didn't collide, we can safely move the remaining distance
+        // If no collision, the ball can safely move the remaining distance
         ball.position.addScaledVector(moveDirection, remainingDistance);
         remainingDistance = 0;
       }
@@ -645,7 +523,7 @@ export class BallPhysics {
 
   // Helper method to check if a sphere intersects a box
   sphereIntersectsBox(sphereCenter, sphereRadius, box) {
-    // Find the closest point on the box to the sphere center
+    // Find closest point on the box to the sphere's center
     const closestPoint = new THREE.Vector3();
     closestPoint.x = Math.max(box.min.x, Math.min(sphereCenter.x, box.max.x));
     closestPoint.y = Math.max(box.min.y, Math.min(sphereCenter.y, box.max.y));
@@ -680,7 +558,7 @@ export class BallPhysics {
     return distance <= radius1 + radius2;
   }
 
-  // Handle collision between a ball and a bounding box using a hybrid approach
+  // Handle collision between a ball and bounding box
   handleBoxCollision(ball, box, isGlassHole = false) {
     if (!ball.userData.boundingSphere) return;
 
@@ -694,8 +572,6 @@ export class BallPhysics {
     const position = ball.position.clone();
     const velocity = ball.userData.velocity;
 
-    // Initialize applied force
-    let appliedForce = new THREE.Vector3(0, 0, 0);
     let hasCollision = false;
 
     // If this is the glass hole box, we handle it differently
@@ -976,7 +852,7 @@ export class BallPhysics {
 
       // Separate the balls to prevent overlap based on mobility
       if (isImmobile1 && isImmobile2) {
-        // Both are immobile - do nothing or maybe add a small random jitter
+        // Both are immobile - do nothing
         return;
       } else if (isImmobile1) {
         // Ball1 is immobile, so move only eff
@@ -1004,8 +880,8 @@ export class BallPhysics {
       const v2 = effVel;
       const relativeVelocity = new THREE.Vector3().subVectors(v1, v2);
 
-      // Check if balls are separating (moving away from each other)
-      // If so, we don't need to apply impulse, reduce computational load
+      // Check if balls are separating 
+      // If so, we don't need to apply impulse
       if (relativeVelocity.dot(normal) > 0) {
         return;
       }
@@ -1028,7 +904,7 @@ export class BallPhysics {
         v1.multiplyScalar(0.7); // More damping for collision with immobile object
       } else {
         // Both are mobile - use conservation of momentum
-        // Calculate coefficient of restitution (bounciness)
+        // Calculate coefficient of restitution - bounciness
         const restitution = 0.7;
 
         // Calculate impulse scalar
@@ -1044,7 +920,6 @@ export class BallPhysics {
 
       // Add a small amount of randomness to prevent balls from getting stuck
       if (Math.abs(v1.y) < 0.1 && Math.abs(v2.y) < 0.1) {
-        // If both balls have very low vertical velocity (likely at rest)
         const smallRandom = 0.05;
         if (!isImmobile1) {
           v1.x += (Math.random() - 0.5) * smallRandom;
@@ -1090,7 +965,7 @@ export class BallPhysics {
           Math.min(sphere1.radius, sphere2.radius)
         ) * 0.5;
 
-      // Calculate normal direction (from ball2 to ball1)
+      // Calculate normal direction
       const normal = new THREE.Vector3()
         .subVectors(ball1.position, ball2.position)
         .normalize();
@@ -1101,16 +976,16 @@ export class BallPhysics {
 
       // Separate the balls to prevent overlap based on mobility
       if (isImmobile1 && isImmobile2) {
-        // Both are immobile - do nothing or maybe add a small random jitter
+        // Both are immobile, do nothing or maybe add a small random jitter
         return;
       } else if (isImmobile1) {
         // Ball1 is immobile, so move only ball2
-        ball2.position.addScaledVector(normal, -(penetration + 0.002)); // Add extra buffer
+        ball2.position.addScaledVector(normal, -(penetration + 0.002)); 
       } else if (isImmobile2) {
         // Ball2 is immobile, so move only ball1
-        ball1.position.addScaledVector(normal, penetration + 0.002); // Add extra buffer
+        ball1.position.addScaledVector(normal, penetration + 0.002);
       } else {
-        // Both are mobile - use standard physics-based separation
+        // Both are mobile, use standard physics-based separation
         const totalMass = ball1.userData.mass + ball2.userData.mass;
         const ratio1 = ball2.userData.mass / totalMass;
         const ratio2 = ball1.userData.mass / totalMass;
@@ -1133,7 +1008,7 @@ export class BallPhysics {
       const relVelocityMagnitude = relativeVelocity.length();
 
       // Check if balls are separating (moving away from each other)
-      // If so, we don't need to apply impulse, reduce computational load
+      // If so, we don't need to apply impulse
       if (relativeVelocity.dot(normal) > 0) {
         return;
       }
@@ -1151,7 +1026,7 @@ export class BallPhysics {
         );
         v2.addScaledVector(normal, -2 * dotProduct * restitution);
         // Apply damping after reflection
-        v2.multiplyScalar(0.7); // More damping for collision with immobile object
+        v2.multiplyScalar(0.7);
 
         // Zero out velocity if below threshold
         this.applyVelocityThreshold(v2);
@@ -1164,7 +1039,7 @@ export class BallPhysics {
         );
         v1.addScaledVector(normal, -2 * dotProduct * restitution);
         // Apply damping after reflection
-        v1.multiplyScalar(0.7); // More damping for collision with immobile object
+        v1.multiplyScalar(0.7);
 
         // Zero out velocity if below threshold
         this.applyVelocityThreshold(v1);
@@ -1246,7 +1121,7 @@ export class BallPhysics {
     // Get velocity magnitude
     const speed = velocity.length();
 
-    // If barely moving, don't bother with friction calculations
+    // If barely moving, don't bother using friction calculations
     if (speed < 0.01) return;
 
     // Calculate normal component of velocity (dot product)
@@ -1274,7 +1149,7 @@ export class BallPhysics {
 
   // Calculate adaptive restitution based on relative velocity magnitude
   calculateAdaptiveRestitution(relativeVelocityMagnitude) {
-    const baseRestitution = 0.7; // Base restitution coefficient
+    const baseRestitution = 0.7;
 
     // For very slow movements, significantly reduce restitution
     if (relativeVelocityMagnitude < this.restVelocityThreshold) {
@@ -1309,7 +1184,7 @@ export class BallPhysics {
   }
 }
 
-// Bounding box collider for efficient collision detection
+// Bounding box collider
 export class BoundingBoxCollider {
   constructor(min, max, color = 0xffff00) {
     this.box = new THREE.Box3(

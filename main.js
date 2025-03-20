@@ -1,12 +1,9 @@
-// main.js - Entry point for Three.js version of the CS174C Project
+// main.js
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { ClawScene } from "./claw.js";
 import { HermitePath } from "./three-hermite.js";
-// import { Claw } from './clawV2.js';
-import { catmullRomTangents } from "./three-catmull-rom.js";
-import { ClawCustom } from "./claw-v2.js";
 
 // Make THREE and OrbitControls available globally for other modules
 window.THREE = THREE;
@@ -39,7 +36,7 @@ function checkThree() {
 document.addEventListener("DOMContentLoaded", () => {
   // console.log("DOM content loaded, attempting to initialize...");
 
-  // Since we're using ES modules, Three.js should already be loaded
+  // With ES modules, Three.js should already be loaded
   // console.log("Three.js loaded as module, initializing...");
   init();
 });
@@ -156,16 +153,13 @@ function loadClawMachineModel(scene) {
         if (object.isMesh) {
           object.castShadow = true;
           object.receiveShadow = true;
-
-          // Debug all mesh names to help find the bird model
-          // console.log(`Found mesh: ${object.name}`);
         }
       });
 
-      // Add a grid helper to visualize the ground plane
-      const gridHelper = new THREE.GridHelper(50, 50, 0x444444, 0x888888);
-      gridHelper.position.y = 0.01; // Slightly above ground
-      scene.scene.add(gridHelper);
+      // Grid to visualize the ground plane
+      // const gridHelper = new THREE.GridHelper(50, 50, 0x444444, 0x888888);
+      // gridHelper.position.y = 0.01; // Slightly above ground
+      // //scene.scene.add(gridHelper);
 
       // Set up the claw machine parts based on the provided coordinates
       setupClawMachine(scene, gltf.scene, {
@@ -228,23 +222,12 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
   scene.clawMachineModel = modelRoot;
 
   // Track potential parts
-  const birdMeshes = [];
   let interiorPart = null;
   let roofPart = null;
 
   // Find parts that might be the claw machine interior/roof
   modelRoot.traverse((child) => {
     if (child.isMesh) {
-      // Check if this might be a bird model
-      if (
-        child.name.toLowerCase().includes("bird") ||
-        child.name.toLowerCase().includes("animal") ||
-        child.name.includes("Sketchfab_model.002")
-      ) {
-        birdMeshes.push(child);
-        // console.log(`Found potential bird model: ${child.name}`);
-      }
-
       // Check if this might be the interior
       if (
         child.name.toLowerCase().includes("interior") ||
@@ -269,232 +252,16 @@ function setupClawMachine(scene, modelRoot, clawPosition) {
   // Update the hermite path to match the roof
   updateHermitePathToMatchRoof(scene, roofPart, clawPos);
 
-  // Handle balls and bounding box - directly call methods on the scene
+  // Handle balls and bounding box
   try {
     // console.log("Updating machine bounds at position:", clawPos);
     scene.updateMachineBounds(clawPos);
-
-    // Replace birds with found bird models
-    if (birdMeshes.length > 0) {
-      findAndReplaceBirds(scene, modelRoot, birdMeshes);
-    }
   } catch (error) {
     // console.error("Error setting up claw machine bounds:", error);
   }
 }
 
-// Helper function to find bird models in the claw machine and replace placeholders
-function findAndReplaceBirds(scene, modelRoot, birdMeshes = []) {
-  // console.log("Finding and replacing birds...");
-
-  // Try to find any bird or animal-like models
-  let birdModel = null;
-
-  // Log all mesh names to debug
-  modelRoot.traverse((object) => {
-    if (object.isMesh) {
-      // console.log(`Checking mesh for bird model: ${object.name}`);
-    }
-  });
-
-  // Look for potential bird models with common names
-  const birdNames = ["bird", "animal", "creature", "toy", "prize", "sketchfab"];
-
-  modelRoot.traverse((object) => {
-    if (object.isMesh) {
-      // Check if the object name contains any bird-like keywords
-      const lowerName = object.name.toLowerCase();
-      if (birdNames.some((name) => lowerName.includes(name))) {
-        // console.log(`Found potential bird model: ${object.name}`);
-        birdModel = object.parent || object; // Get the parent group if available
-      }
-    }
-  });
-
-  // If we didn't find a specific bird model, try to use any of the provided bird meshes
-  if (!birdModel && birdMeshes.length > 0) {
-    // console.log("Using provided bird meshes instead");
-    birdModel = birdMeshes[0].parent || birdMeshes[0];
-  }
-
-  // If we still don't have a bird model, try to create one from a simple shape
-  if (!birdModel) {
-    // console.log("Creating simple bird model from geometries");
-    birdModel = createSimpleBirdModel();
-  }
-
-  // If we found a bird model, use it to replace the balls
-  if (birdModel) {
-    // console.log("Bird model found, replacing balls with birds");
-    replaceBallsWithBirdModels(scene, birdModel);
-  } else {
-    // console.log("No bird model found, keeping the balls");
-  }
-}
-
-// Create a simple bird model from basic geometries
-function createSimpleBirdModel() {
-  // Create a group to hold the bird parts
-  const birdGroup = new THREE.Group();
-
-  // Create the body (sphere)
-  const bodyGeometry = new THREE.SphereGeometry(0.5, 12, 8);
-  const bodyMaterial = new THREE.MeshPhongMaterial({
-    color: 0x3399ff,
-    shininess: 30,
-    specular: 0x111111,
-  });
-  const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-  birdGroup.add(body);
-
-  // Create the head (smaller sphere)
-  const headGeometry = new THREE.SphereGeometry(0.3, 8, 8);
-  const headMaterial = new THREE.MeshPhongMaterial({
-    color: 0x3355ff,
-    shininess: 30,
-    specular: 0x111111,
-  });
-  const head = new THREE.Mesh(headGeometry, headMaterial);
-  head.position.set(0.5, 0.2, 0);
-  birdGroup.add(head);
-
-  // Create the beak (cone)
-  const beakGeometry = new THREE.ConeGeometry(0.1, 0.3, 8);
-  const beakMaterial = new THREE.MeshPhongMaterial({ color: 0xffff00 });
-  const beak = new THREE.Mesh(beakGeometry, beakMaterial);
-  beak.position.set(0.8, 0.2, 0);
-  beak.rotation.z = -Math.PI / 2;
-  birdGroup.add(beak);
-
-  // Create wings (flattened boxes)
-  const wingGeometry = new THREE.BoxGeometry(0.1, 0.4, 0.6);
-  const wingMaterial = new THREE.MeshPhongMaterial({
-    color: 0x2288dd,
-    shininess: 10,
-  });
-
-  // Left wing
-  const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
-  leftWing.position.set(0, 0.1, -0.5);
-  leftWing.rotation.y = Math.PI / 6;
-  birdGroup.add(leftWing);
-
-  // Right wing
-  const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
-  rightWing.position.set(0, 0.1, 0.5);
-  rightWing.rotation.y = -Math.PI / 6;
-  birdGroup.add(rightWing);
-
-  // Create eyes (small white spheres with black pupils)
-  const eyeGeometry = new THREE.SphereGeometry(0.06, 8, 8);
-  const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-  // Left eye
-  const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-  leftEye.position.set(0.7, 0.3, -0.15);
-  birdGroup.add(leftEye);
-
-  // Right eye
-  const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-  rightEye.position.set(0.7, 0.3, 0.15);
-  birdGroup.add(rightEye);
-
-  // Pupils
-  const pupilGeometry = new THREE.SphereGeometry(0.02, 8, 8);
-  const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-
-  // Left pupil
-  const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-  leftPupil.position.set(0.76, 0.3, -0.15);
-  birdGroup.add(leftPupil);
-
-  // Right pupil
-  const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
-  rightPupil.position.set(0.76, 0.3, 0.15);
-  birdGroup.add(rightPupil);
-
-  // Name the model for reference
-  birdGroup.name = "SimpleBird";
-
-  return birdGroup;
-}
-
-// Replace balls with bird models
-function replaceBallsWithBirdModels(scene, birdModel) {
-  if (!scene.clawScene || !scene.clawScene.toys || !birdModel) {
-    console.log("No toys found to replace or no bird model available");
-    return;
-  }
-
-  // Get a reference to the toys/balls
-  const toys = scene.clawScene.toys;
-
-  // Create new array to hold the birds
-  const birds = [];
-
-  // Create a bird model for each ball
-  for (let i = 0; i < toys.length; i++) {
-    const toy = toys[i];
-
-    // Skip if not a ball
-    if (!toy.userData.isBall) continue;
-
-    // Get the ball's position and properties
-    const position = toy.position.clone();
-    const color = toy.material ? toy.material.color.getHex() : 0xffffff;
-    const name = toy.name || `Bird${i}`;
-    const radius = toy.userData.radius || 0.4;
-    const mass = toy.userData.mass || 1.0;
-
-    // Clone the bird model
-    const bird = birdModel.clone();
-
-    // Scale the bird based on the ball's radius
-    const scale = radius * 5; // Adjust this multiplier to get appropriate bird size
-    bird.scale.set(scale, scale, scale);
-
-    // Position the bird at the ball's position
-    bird.position.copy(position);
-
-    // Set the bird's name
-    bird.name = name;
-
-    // Add physics properties
-    bird.userData.velocity = toy.userData.velocity
-      ? toy.userData.velocity.clone()
-      : new THREE.Vector3(0, 0, 0);
-    bird.userData.mass = mass;
-    bird.userData.radius = radius;
-    bird.userData.isBird = true; // Flag to identify as a bird
-
-    // Add a bounding sphere for collision detection
-    bird.userData.boundingSphere = new THREE.Sphere(
-      bird.position.clone(),
-      radius * 1.2 // Slightly larger than the visual radius
-    );
-
-    // Apply random rotation to make birds look different
-    bird.rotation.y = Math.random() * Math.PI * 2;
-
-    // Add to scene and birds array
-    scene.scene.add(bird);
-    birds.push(bird);
-
-    // Remove the original ball
-    scene.scene.remove(toy);
-
-    // console.log(
-    //   `Replaced ${toy.name} with bird model at (${position.x}, ${position.y}, ${position.z})`
-    // );
-  }
-
-  // Update the toys array to contain the birds
-  scene.clawScene.toys = birds;
-
-  // console.log(`Replaced ${birds.length} balls with bird models`);
-}
-
-// Helper function to update the hermite path to align with the roof of the claw machine
+// Update the hermite path to align with the roof of the claw machine
 function updateHermitePathToMatchRoof(scene, roofPart, clawPosition) {
   // console.log("Updating hermite path to match roof at position:", clawPosition);
 
@@ -505,12 +272,12 @@ function updateHermitePathToMatchRoof(scene, roofPart, clawPosition) {
   }
 
   // Calculate the roof height - a bit below the top of the claw machine
-  const roofHeight = clawPosition.y + 6.5; // Approximately 4 units above the base
+  const roofHeight = clawPosition.y + 6.5; 
   // console.log(`Setting path at height ${roofHeight}`);
 
   // Create points for a path around the inside perimeter
-  const pathWidth = 2.0; // Width of the path area (X)
-  const pathDepth = 2.0; // Depth of the path area (Z)
+  const pathWidth = 2.0; 
+  const pathDepth = 2.0; 
 
   // Create points for the path centered at the claw position
   // Create a distinctly M-shaped path at the specified height
@@ -595,7 +362,6 @@ function updateHermitePathToMatchRoof(scene, roofPart, clawPosition) {
     };
   }
 
-  // Create our own visual line since createVisualLine is undefined
   if (scene.clawPathLine) {
     scene.scene.remove(scene.clawPathLine);
   }
@@ -634,126 +400,3 @@ function updateHermitePathToMatchRoof(scene, roofPart, clawPosition) {
   }
 }
 
-// Position the claw machine on top of the ferris wheel
-function positionClawMachineOnFerrisWheel(scene) {
-  if (!scene.clawMachineGroup) {
-    // console.warn("Cannot position claw machine - missing required components");
-    return;
-  }
-
-  // Get the bounding box of the claw machine
-  const clawBBox = new THREE.Box3().setFromObject(scene.clawMachineGroup);
-  const clawSize = new THREE.Vector3();
-  clawBBox.getSize(clawSize);
-
-  // Get the height of the ferris wheel if available
-  const ferrisHeight = scene.ferrisWheelTop || 0;
-
-  // Position the claw machine on top of the ferris wheel with offset (x=5, z=3)
-  scene.clawMachineGroup.position.set(
-    5, // X offset as requested
-    ferrisHeight, // Y on top of ferris wheel
-    3 // Z offset as requested
-  );
-
-  // console.log(`Positioned claw machine at (5, ${ferrisHeight}, 3)`);
-
-  // Update the claw mechanism position
-  if (scene.clawMechanism) {
-    // Get reference to the roof for height calculation
-    let roofY = 0;
-    let roofFound = false;
-
-    // Try to find the roof in the model
-    if (scene.clawMachineModel) {
-      scene.clawMachineModel.traverse((obj) => {
-        if (
-          !roofFound &&
-          obj.isMesh &&
-          (obj.name.toLowerCase().includes("roof") ||
-            obj.name.toLowerCase().includes("ceiling") ||
-            obj.name.toLowerCase().includes("top"))
-        ) {
-          // Get the bottom of the roof in world coordinates
-          const roofBox = new THREE.Box3().setFromObject(obj);
-          roofY = roofBox.min.y;
-          roofFound = true;
-          // console.log(`Found roof bottom at y=${roofY}`);
-        }
-      });
-    }
-
-    // If we didn't find a roof, estimate it
-    if (!roofFound) {
-      // Update the base height for the claw mechanism based on machine height
-      const clawOperationHeight = scene.machineHeight - 4 || 8;
-      roofY = ferrisHeight + clawOperationHeight;
-      // console.log(`Using estimated roof height at y=${roofY}`);
-    }
-
-    // Update claw mechanism position
-    scene.clawMechanism.position.set(
-      5, // Match the X offset
-      roofY - 1, // Just below the roof
-      3 // Match the Z offset
-    );
-  }
-
-  // Update the machine boundaries for the physics to match the new position
-  if (scene.machineBounds) {
-    // Calculate the displacement from the original position
-    const offsetX = 5;
-    const offsetY = ferrisHeight;
-    const offsetZ = 3;
-
-    // Create a new box with displaced coordinates
-    const newMin = new THREE.Vector3(
-      scene.machineBounds.min.x + offsetX,
-      scene.machineBounds.min.y + offsetY,
-      scene.machineBounds.min.z + offsetZ
-    );
-
-    const newMax = new THREE.Vector3(
-      scene.machineBounds.max.x + offsetX,
-      scene.machineBounds.max.y + offsetY,
-      scene.machineBounds.max.z + offsetZ
-    );
-
-    // Update the bounds
-    scene.machineBounds.set(newMin, newMax);
-
-    // Update the box helper
-    if (scene.boxHelper) {
-      scene.boxHelper.updateMatrixWorld(true);
-    }
-
-    // console.log(`Updated machine bounds to match new position`);
-  }
-
-  // Update the hermite path to align with the new position
-  // This is now handled separately in updateHermitePathToMatchRoof
-  // which will be called after the machine is positioned
-
-  // console.log(
-  //   "Claw machine positioned on top of ferris wheel with offset (5, y, 3)"
-  // );
-
-  // Finally, update path to match the new roof position
-  let roofPart = null;
-  if (scene.clawMachineModel) {
-    scene.clawMachineModel.traverse((obj) => {
-      if (
-        !roofPart &&
-        obj.isMesh &&
-        (obj.name.toLowerCase().includes("roof") ||
-          obj.name.toLowerCase().includes("ceiling") ||
-          obj.name.toLowerCase().includes("top"))
-      ) {
-        roofPart = obj;
-      }
-    });
-  }
-
-  // Update the path with the positioned roof
-  updateHermitePathToMatchRoof(scene, roofPart, scene.clawMachinePosition);
-}

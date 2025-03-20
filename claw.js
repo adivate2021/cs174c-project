@@ -1,11 +1,8 @@
-// three-claw-scene.js - Main scene file for Three.js version
+// three-claw-scene.js
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ChainSim, BallPhysics, BoundingBoxCollider } from "./three-physics.js";
-import { HermiteCurve, HermitePath } from "./three-hermite.js";
-import { CatmullRomPath, catmullRomTangents } from "./three-catmull-rom.js";
-import { Matrix4, Quaternion, Euler } from "three";
-// import { ClawCustom } from "./claw-v2.js";
+import { HermitePath } from "./three-hermite.js";
 
 // Constants for the inverse kinematics
 const IK_ITERATIONS = 10;
@@ -14,7 +11,6 @@ const IK_DAMPING = 0.5;
 
 export class ClawScene {
   constructor() {
-    // Claw movement properties - initialize before methods that might use them
     this.isClawMoving = false;
     this.claw_position = new THREE.Vector3(0, 6, 0);
     this.claw_target = new THREE.Vector3(0, 6, 0);
@@ -45,16 +41,16 @@ export class ClawScene {
 
     this.pathT = 0;
 
-    // Store reference to the claw machine position
+    // Reference to the claw machine position
     this.clawMachinePosition = new THREE.Vector3(0, 0, 0);
 
     console.log("ClawScene initialized");
   }
 
   initScene() {
-    // Create a scene and set a light blue background
+    // Create a scene with a light blue background
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x87ceeb); // Light blue / sky blue
+    this.scene.background = new THREE.Color(0x87ceeb);
     this.gameOver = false;
     // Create a camera
     this.camera = new THREE.PerspectiveCamera(
@@ -104,11 +100,10 @@ export class ClawScene {
     // Store reference to the claw position
     this.claw_position = new THREE.Vector3(0, 5, 0);
 
-    // Create an array to hold toys (birds)
     this.toys = [];
 
     // Initialize basic physics simulation parameters
-    this.gravity = new THREE.Vector3(0, -9.8, 0); // Earth gravity
+    this.gravity = new THREE.Vector3(0, -9.8, 0);
     this.isGravityEnabled = true;
     this.lastTime = performance.now() / 1000; // Convert to seconds
   }
@@ -166,14 +161,10 @@ export class ClawScene {
   }
 
   initHermiteCurves() {
-    // This method will just initialize the path variables but won't create paths
     // The actual path creation will be handled by updateHermitePathToMatchRoof
 
-    // Initialize variables for later use - but don't create actual paths yet
+    // Initialize variables
     this.clawOperationHeight = 8; // Default height for claw operation
-
-    // We won't create actual path points here anymore
-    // This prevents duplicate paths from appearing at the origin
 
     console.log(
       "Initialized hermite curve variables (path will be created at claw machine position)"
@@ -331,8 +322,8 @@ export class ClawScene {
       // To ensure the pivot is at the left end, we shift the geometry.
       const upperFinger = new THREE.Mesh(upperFingerGeometry, fingerMaterial);
       this.fingers.push(upperFinger);
-      //translate by the radius of the root ball + half length of the box
-      // all translations need to be scaled by scale * 0.1 now
+      // Translate by the radius of the root ball + half length of the box
+      // All translations need to be scaled by scale * 0.1 now
       upperFinger.geometry.translate(
         this.scaleValue * 0.1 * (1 + upperFingerLength / 2),
         0,
@@ -379,19 +370,7 @@ export class ClawScene {
       // );
       wrist.add(endEffector);
       this.endEffectors.push(wrist);
-
-      // Optional: add an axes helper to visualize the finger's local axes.
-      // const axesHelper = new THREE.AxesHelper(2);
-      // fingerGroup.add(axesHelper);
-      // const axesHelper1 = new THREE.AxesHelper(2)
-      // upperFinger.add(axesHelper1)
-      // const axesHelper2 = new THREE.AxesHelper(5);
-      // lowerFinger.add(axesHelper2);
-      // const axesHelper3 = new THREE.AxesHelper(2);
-      // lowerFingerPivot.add(axesHelper3);
     });
-    // this.customClaw = new ClawCustom(1, Math.PI/3)
-    // this.updateCustomClawPosition(new THREE.Vector3(-14.4, 3, 21.5))
   }
   getCustomClawEndEffectorPositions() {
     let temp = [];
@@ -421,13 +400,6 @@ export class ClawScene {
       }
     });
     return new THREE.Vector3(0, friction, 0);
-
-    // let friction = 0;
-    // for (let end of this.endEffectors) {
-    // 	if (toy.userData.boundingSphere.intersectsSphere(end.children[0].geometry.boundingSphere)) {
-    // 	}
-    // }
-    // return 0
   }
   initToys() {
     // console.log("Initializing toys with direct positioning");
@@ -437,7 +409,6 @@ export class ClawScene {
 
     // Create the balls directly using absolute positions
     // These positions are placed in the left-back quadrant of the machine
-    // based on the known position of the machine at (-13.05, 1.6, 22.8)
     this.createDirectBalls();
   }
 
@@ -456,32 +427,24 @@ export class ClawScene {
     // Create a barrier to prevent balls from rolling into the glass hole
     this.createLargeBarrier();
 
-    // Use a verified stable position as our reference point - adjusted to be safely within bounds
-    const stableX = -14.4; // Moved right to avoid left boundary (-14.95)
-    const stableY = 2.9; // Just above the floor level
-    const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
+    // Stable position 
+    const stableX = -14.4; 
+    const stableY = 2.9;
+    const stableZ = 21.5; 
 
     // Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
     const ballAbsolutePositions = [
-      [stableX, stableY, stableZ], // Row 1, Col 1
-      [stableX, stableY, stableZ + 0.7], // Row 1, Col 2
-      [stableX, stableY, stableZ + 1.4], // Row 1, Col 3
-      [stableX + 0.7, stableY, stableZ], // Row 2, Col 1
-      [stableX + 0.7, stableY, stableZ + 0.7], // Row 2, Col 2
-      [stableX + 0.7, stableY, stableZ + 1.4], // Row 2, Col 3
-      [stableX + 1.4, stableY, stableZ], // Row 3, Col 1
-      [stableX + 1.4, stableY, stableZ + 0.7], // Row 3, Col 2
-      [stableX, stableY + 0.5, stableZ], // Row 1, Col 1
-      [stableX, stableY + 0.5, stableZ + 0.7], // Row 1, Col 2
-      [stableX, stableY + 0.5, stableZ + 1.4], // Row 1, Col 3
-      // [stableX + 0.7, stableY + 0.5, stableZ], // Row 2, Col 1
-      // [stableX + 0.7, stableY + 0.5, stableZ + 0.7], // Row 2, Col 2
-      // [stableX + 0.7, stableY + 0.5, stableZ + 1.4], // Row 2, Col 3
-      // [stableX + 1.4, stableY + 0.5, stableZ], // Row 3, Col 1
-      // [stableX + 1.4, stableY + 0.5, stableZ + 0.7], // Row 3, Col 2
-      // [stableX, stableY + 1.0, stableZ], // Row 1, Col 1
-      // [stableX, stableY + 1.0, stableZ + 0.7], // Row 1, Col 2
-      // [stableX, stableY + 1.0, stableZ + 1.4], // Row 1, Col 3
+      [stableX, stableY, stableZ], 
+      [stableX, stableY, stableZ + 1.0],
+      [stableX, stableY, stableZ + 2.0], 
+      [stableX, stableY, stableZ + 3.0], 
+      [stableX, stableY, stableZ + 4.0],
+      [stableX + 1.0, stableY, stableZ],
+      [stableX + 2.0, stableY, stableZ],
+      [stableX + 3.0, stableY, stableZ],
+      [stableX + 1.0, stableY, stableZ + 1.0],
+      [stableX + 1.0, stableY, stableZ + 1.5],
+      [stableX + 1.5, stableY, stableZ + 1.0],
     ];
 
     const count = ballAbsolutePositions.length;
@@ -526,13 +489,13 @@ export class ClawScene {
           // Enable physics with random initial velocities
           ball.userData.isImmobile = false;
           ball.userData.velocity.set(
-            (Math.random() - 0.5) * 2.0, // Random X velocity
-            Math.random() * 0.5, // Small upward Y velocity
-            (Math.random() - 0.5) * 2.0 // Random Z velocity
+            (Math.random() - 0.5) * 2.0, 
+            Math.random() * 0.5, 
+            (Math.random() - 0.5) * 2.0 
           );
           ball.userData.acceleration.set(0, 0, 0);
         } else {
-          // Make balls immobile by default - they'll only move when grabbed
+          // Make balls immobile by default. They will only move when grabbed
           ball.userData.velocity.set(0, 0, 0);
           ball.userData.isImmobile = true; // Flag to mark as immobile
         }
@@ -552,7 +515,7 @@ export class ClawScene {
       let saturation = 0;
 
       // For vibrant colors, ensure at least one channel is high
-      // and the overall saturation is sufficient
+      // and the saturation is sufficient
       do {
         r = Math.random();
         g = Math.random();
@@ -588,7 +551,6 @@ export class ClawScene {
 
   // Create a larger barrier wall to separate the glass hole area
   createLargeBarrier() {
-    // Glass hole is around (-12, 3, 24)
     // Create a large barrier wall between the glass hole and the rest of the machine
     const barrierGeometry = new THREE.BoxGeometry(3.0, 1.0, 0.2);
     const barrierMaterial = new THREE.MeshPhongMaterial({
@@ -601,8 +563,8 @@ export class ClawScene {
     const barrier = new THREE.Mesh(barrierGeometry, barrierMaterial);
 
     // Position the barrier as a large wall in front of the glass hole
-    barrier.position.set(-13.5, 3.0, 23.0); // Positioned on the floor, creating a wall
-    barrier.rotation.y = Math.PI / 6; // Angled to better block access to the glass hole
+    barrier.position.set(-13.5, 3.0, 23.0); 
+    barrier.rotation.y = Math.PI / 6; // Angled to block access to the glass hole
 
     // Add physics properties
     barrier.userData.isStatic = true; // Static object, won't move
@@ -611,11 +573,9 @@ export class ClawScene {
     // Add to scene
     this.scene.add(barrier);
     this.barrier = barrier;
-
-    // The barrier is now invisible but will still handle collisions
   }
 
-  // Method to update the machine bounds to match the claw machine
+  // Update the machine bounds to match the claw machine
   updateMachineBounds(clawPosition) {
     // console.log("Updating machine bounds at position:", clawPosition);
 
@@ -626,7 +586,6 @@ export class ClawScene {
     const boundsSize = 1.9; // Size of the bounding box (half-width)
     const boundsHeight = 5.0; // Height of the bounding box
 
-    // The floor of the claw machine is visually at Y = 2.1 (clawPosition.y + 0.5)
     const floorY = clawPosition.y + 1.25;
 
     // Remove any existing box helpers to prevent duplicates
@@ -641,12 +600,12 @@ export class ClawScene {
       this.machineBoundsCollider = new BoundingBoxCollider(
         new THREE.Vector3(
           clawPosition.x - boundsSize,
-          floorY, // Set Y to match the visual floor
+          floorY,
           clawPosition.z - boundsSize
         ),
         new THREE.Vector3(
           clawPosition.x + boundsSize,
-          floorY + boundsHeight, // Height from the floor
+          floorY + boundsHeight,
           clawPosition.z + boundsSize
         )
       );
@@ -656,12 +615,12 @@ export class ClawScene {
       this.machineBoundsCollider.setFromMinMax(
         new THREE.Vector3(
           clawPosition.x - boundsSize,
-          floorY, // Set Y to match the visual floor
+          floorY, 
           clawPosition.z - boundsSize
         ),
         new THREE.Vector3(
           clawPosition.x + boundsSize,
-          floorY + boundsHeight, // Height from the floor
+          floorY + boundsHeight, 
           clawPosition.z + boundsSize
         )
       );
@@ -684,11 +643,11 @@ export class ClawScene {
     // Mark as initialized to prevent duplicates
     this.machineBoundsInitialized = true;
 
-    // Create a glass hole bounding box (smaller box for the prize retrieval hole)
+    // Create a glass hole bounding box (smaller box for the prize hole)
     this.createGlassHoleBounds(clawPosition);
 
-    // Reposition the birds/balls within bounds
-    this.repositionBirdsInBounds();
+    // Reposition the balls within bounds
+    this.repositionBallsInBounds();
 
     // Add a visual marker at the claw position for debugging
     if (!this.positionMarker) {
@@ -1081,21 +1040,21 @@ export class ClawScene {
       if (
         distanceFromBottom < 0.15 &&
         (ball.position.x >
-          this.glassHoleBounds.min.x + ball.userData.radius + 0.1 ||
+          this.glassHoleBounds.min.x + ball.userData.radius + 0.2 ||
           ball.position.x >
-            this.glassHoleBounds.min.x + ball.userData.radius - 0.1) &&
+            this.glassHoleBounds.min.x + ball.userData.radius - 0.2) &&
         (ball.position.x <
-          this.glassHoleBounds.max.x - ball.userData.radius + 0.1 ||
+          this.glassHoleBounds.max.x - ball.userData.radius + 0.2 ||
           ball.position.x <
-            this.glassHoleBounds.max.x - ball.userData.radius - 0.1) &&
+            this.glassHoleBounds.max.x - ball.userData.radius - 0.2) &&
         (ball.position.z >
-          this.glassHoleBounds.min.z + ball.userData.radius + 0.1 ||
+          this.glassHoleBounds.min.z + ball.userData.radius + 0.2 ||
           ball.position.z >
-            this.glassHoleBounds.min.z + ball.userData.radius - 0.1) &&
+            this.glassHoleBounds.min.z + ball.userData.radius - 0.2) &&
         (ball.position.z <
-          this.glassHoleBounds.max.z - ball.userData.radius + 0.1 ||
+          this.glassHoleBounds.max.z - ball.userData.radius + 0.2 ||
           ball.position.z <
-            this.glassHoleBounds.max.z - ball.userData.radius - 0.1)
+            this.glassHoleBounds.max.z - ball.userData.radius - 0.2)
       ) {
         // Get the ball's velocity magnitude
         const velocityMagnitude = ball.userData.velocity.length();
@@ -1240,8 +1199,8 @@ export class ClawScene {
     }
   }
 
-  // Method to reposition birds within the bounding box
-  repositionBirdsInBounds() {
+  // Method to reposition balls within the bounding box
+  repositionBallsInBounds() {
     if (!this.toys || !this.machineBounds) {
       return;
     }
@@ -1253,23 +1212,25 @@ export class ClawScene {
 
     // Create the same grid of positions used in other methods
     const positions = [
-      [stableX, stableY, stableZ], // Row 1, Col 1
-      [stableX, stableY, stableZ + 0.7], // Row 1, Col 2
-      [stableX, stableY, stableZ + 1.4], // Row 1, Col 3
-      [stableX + 0.7, stableY, stableZ], // Row 2, Col 1
-      [stableX + 0.7, stableY, stableZ + 0.7], // Row 2, Col 2
-      [stableX + 0.7, stableY, stableZ + 1.4], // Row 2, Col 3
-      [stableX + 1.4, stableY, stableZ], // Row 3, Col 1
-      [stableX + 1.4, stableY, stableZ + 0.7], // Row 3, Col 2
+      [stableX + 0.1, stableY, stableZ], 
+      [stableX + 0.9, stableY, stableZ + 0.1], 
+      [stableX + 1.8, stableY, stableZ], 
+      [stableX + 2.5, stableY, stableZ + 0.1], 
+      [stableX + 0.1, stableY, stableZ + 1.0], 
+      [stableX, stableY, stableZ + 2.1], 
+      [stableX + 1.0, stableY, stableZ + 2.9], 
+      [stableX + 0.9, stableY, stableZ + 0.9], 
+      [stableX + 1.5, stableY, stableZ + 1.3], 
+      [stableX + 1.1, stableY, stableZ + 1.5], 
+      [stableX + 1.9, stableY, stableZ + 1.0],
     ];
 
-    // Keep track of how many balls we've repositioned
+    // Keep track of how many balls were repositioned
     let count = 0;
 
     this.toys.forEach((toy) => {
       if (toy.userData && toy.userData.isBall) {
         if (count < positions.length) {
-          // Get the next position from our predefined grid
           const position = positions[count];
 
           // Set the position
@@ -1324,7 +1285,7 @@ export class ClawScene {
       x = position.x;
       y = position.y;
       z = position.z;
-      isAbsolutePosition = true; // If passing a Vector3, assume it's already an absolute position
+      isAbsolutePosition = true;
     } else {
       // console.error("Invalid position format for createBall:", position);
       return null;
@@ -1569,10 +1530,10 @@ export class ClawScene {
 
     const clawMachinePos = this.clawMachinePosition;
 
-    // Avoid extremely small or very large delta times - can cause physics instability
-    const safeDt = Math.min(Math.max(dt, 0.0016), 0.032); // Clamp between 1.6ms and 32ms
+    // Safe timestep for preventing physics instability
+    const safeDt = Math.min(Math.max(dt, 0.0016), 0.032);
 
-    // Store glass hole box for fast access
+    // Store glass hole box
     const glassBox = this.glassHoleBounds;
 
     // Log physics status every 10 seconds
@@ -1783,10 +1744,10 @@ export class ClawScene {
 
   // Reset a ball's position to be inside the machine
   resetBallPosition(ball) {
-    // Use a verified stable position as our reference point - adjusted to be safely within bounds
-    const stableX = -14.4; // Moved right to avoid left boundary (-14.95)
-    const stableY = 2.9; // Just above the floor level
-    const stableZ = 21.5; // Moved forward to avoid back boundary (20.9)
+    // Use a verified stable position as our reference point
+    const stableX = -14.4;
+    const stableY = 2.9; 
+    const stableZ = 21.5; 
 
     // Create a tight 3x3 grid with consistent spacing, ensuring all positions are within bounds
     const resetPositions = [
@@ -1816,9 +1777,9 @@ export class ClawScene {
     const position = resetPositions[index];
 
     // Add a very small random offset to prevent perfect stacking
-    const offsetX = (Math.random() - 0.5) * 0.05; // Very small offset
-    const offsetY = Math.random() * 0.05; // Very small offset
-    const offsetZ = (Math.random() - 0.5) * 0.05; // Very small offset
+    const offsetX = (Math.random() - 0.5) * 0.05;
+    const offsetY = Math.random() * 0.05;
+    const offsetZ = (Math.random() - 0.5) * 0.05;
 
     const x = position[0] + offsetX;
     const y = position[1] + offsetY;
@@ -1827,7 +1788,7 @@ export class ClawScene {
     // Set the new position
     ball.position.set(x, y, z);
 
-    // Reset velocity to ZERO
+    // Reset velocity to 0
     ball.userData.velocity.set(0, 0, 0);
 
     // Update bounding sphere
@@ -1841,7 +1802,7 @@ export class ClawScene {
   render() {
     // Before rendering, ensure all balls are visible
     if (this.toys && this.toys.length > 0 && this.renderCount % 60 === 0) {
-      // Check every ~1 second (assuming 60fps)
+      // Check every ~1 second
       let fixedCount = 0;
       this.toys.forEach((toy) => {
         if (toy && !toy.visible) {
@@ -2105,112 +2066,7 @@ export class ClawScene {
     return result;
   }
 
-  // Solve the inverse kinematics using the Jacobian Transpose method
-  // solveIK(targetPosition) {
-  // 	if (
-  // 		!this.ikEnabled ||
-  // 		this.ikJoints.length === 0 ||
-  // 		!this.ikEndEffector
-  // 	) {
-  //     return false;
-  //   }
-
-  //   // Update the visual target
-  //   this.ikTarget.position.copy(targetPosition);
-
-  //   // Get the current end effector position in world space
-  //   const endEffectorPosition = new THREE.Vector3();
-  //   this.ikEndEffector.getWorldPosition(endEffectorPosition);
-
-  //   // Calculate the error vector
-  //   const error = new THREE.Vector3().subVectors(
-  //     targetPosition,
-  //     endEffectorPosition
-  //   );
-
-  //   // If we're already close enough, no need to solve
-  //   if (error.length() < IK_TOLERANCE) {
-  //     return true;
-  //   }
-
-  //   // Iterate to find a solution
-  //   for (let iteration = 0; iteration < IK_ITERATIONS; iteration++) {
-  //     // For each joint, calculate how its rotation affects the end effector
-  //     for (let i = this.ikJoints.length - 1; i >= 0; i--) {
-  //       const joint = this.ikJoints[i];
-  //       const jointData = joint.userData.ikJoint;
-
-  //       if (!jointData || !jointData.axis) continue;
-
-  //       // Get joint position in world space
-  //       const jointPosition = new THREE.Vector3();
-  //       joint.getWorldPosition(jointPosition);
-
-  //       // Calculate the joint axis in world space
-  //       const jointAxis = jointData.axis.clone();
-  //       joint.getWorldQuaternion(new THREE.Quaternion()).normalize();
-  //       jointAxis.applyQuaternion(
-  //         joint.getWorldQuaternion(new THREE.Quaternion())
-  //       );
-
-  //       // Calculate the lever arm (from joint to end effector)
-  //       const leverArm = new THREE.Vector3().subVectors(
-  //         endEffectorPosition,
-  //         jointPosition
-  //       );
-
-  //       // Calculate the cross product to find the direction of influence
-  // 			const cross = new THREE.Vector3().crossVectors(
-  // 				jointAxis,
-  // 				leverArm
-  // 			);
-
-  //       // Calculate how much to rotate this joint (dot product with error)
-  //       let rotationAmount = cross.dot(error) * IK_DAMPING;
-
-  //       // Apply joint limits
-  //       const currentAngle =
-  //         joint.rotation[this.getRotationComponent(jointData.axis)];
-  //       const newAngle = currentAngle + rotationAmount;
-
-  //       if (newAngle < jointData.min) {
-  //         rotationAmount = jointData.min - currentAngle;
-  //       } else if (newAngle > jointData.max) {
-  //         rotationAmount = jointData.max - currentAngle;
-  //       }
-
-  //       // Apply the rotation
-  //       if (Math.abs(rotationAmount) > 0.001) {
-  //         // Create a rotation quaternion around the joint axis
-  //         const rotationQuat = new THREE.Quaternion();
-  // 				rotationQuat.setFromAxisAngle(
-  // 					jointData.axis,
-  // 					rotationAmount
-  // 				);
-
-  //         // Apply the rotation to the joint
-  //         joint.quaternion.premultiply(rotationQuat);
-  //         joint.updateMatrixWorld(true);
-
-  //         // Update the end effector position after this joint's rotation
-  //         this.ikEndEffector.getWorldPosition(endEffectorPosition);
-
-  //         // Recalculate the error
-  //         error.subVectors(targetPosition, endEffectorPosition);
-
-  //         // If we're close enough, we can stop
-  //         if (error.length() < IK_TOLERANCE) {
-  //           return true;
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   // Return true if we got close enough, false otherwise
-  //   return error.length() < IK_TOLERANCE * 10;
-  // }
-
-  // Helper to determine which rotation component to use based on axis
+  // Determine which rotation component to use based on axis
   getRotationComponent(axis) {
     if (Math.abs(axis.x) > 0.9) return "x";
     if (Math.abs(axis.y) > 0.9) return "y";
@@ -2218,10 +2074,10 @@ export class ClawScene {
     return "y"; // Default
   }
 
-  // Helper method to check if a toy is in contact with any surface
+  // Check if a toy is in contact with any surface
   isInContactWithSurface(toy) {
     const radius = toy.userData.radius || 0.4;
-    const epsilon = 0.01; // Small threshold for contact detection
+    const epsilon = 0.01; 
 
     // Check if near floor
     if (
@@ -2338,7 +2194,7 @@ export class ClawScene {
     this.machineBounds.getSize(size);
 
     // Random position within the bounds, staying away from edges
-    const padding = 0.4; // Stay away from edges
+    const padding = 0.4; 
     const x = center.x + (Math.random() * 2 - 1) * (size.x / 2 - padding);
 
     // Keep the Y position safely above the bottom by at least 0.5 units
@@ -2354,7 +2210,7 @@ export class ClawScene {
 
   // Method to initialize the Hermite curves for the claw path
   initHermiteCurves() {
-    // Create a proper HermitePath object (instead of our custom implementation)
+    // Create a proper HermitePath object
     this.clawPath = new HermitePath();
 
     // Define control points for a circular path
@@ -2376,7 +2232,7 @@ export class ClawScene {
       const p1 = points[i];
       const p2 = points[(i + 1) % numPoints];
 
-      // Calculate tangents (simple but effective)
+      // Calculate tangents 
       const tangent1 = new THREE.Vector3(
         -Math.sin((i / numPoints) * Math.PI * 2),
         0,
@@ -2448,7 +2304,7 @@ export class ClawScene {
     }
   }
 
-  // This method needs to be called when a ball is grabbed by the claw
+  // Called when a ball is grabbed by the claw
   enableBallPhysics(ball) {
     if (ball && ball.userData) {
       // console.log(`Enabling physics for ${ball.name} - ball is now mobile`);
@@ -2457,12 +2313,11 @@ export class ClawScene {
     }
   }
 
-  // This method would be called when a ball is released from the claw
+  // Called when a ball is released from the claw
   releaseBall(ball) {
     if (ball && ball.userData) {
       // console.log(`Released ${ball.name} - ball will follow normal physics`);
       ball.userData.isGrabbed = false;
-      // Don't reset isImmobile - let it follow physics until it comes to rest or is reset
     }
   }
 
